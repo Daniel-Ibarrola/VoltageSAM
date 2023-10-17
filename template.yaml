@@ -3,36 +3,120 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   voltage-api
 
-  Sample SAM Template for voltage-api
+  SAM Template for voltage-api
 
 Globals:
   Function:
+    Runtime: python3.11
     Timeout: 3
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref ReportsTable
+        REGION_NAME: !Ref AWS::Region
 
 Resources:
-  HelloWorldFunction:
+
+  AddNewReport:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: hello_world/
-      Handler: app.lambda_handler
-      Runtime: python3.11
+      CodeUri: src/
+      Handler: new_report.lambda_handler
       Architectures:
         - x86_64
       Events:
         HelloWorld:
           Type: Api
           Properties:
+            Path: /reports
+            Method: POST
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportsTable
+
+  ListLastReports:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: list_last.lambda_handler
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /last_reports
+            Method: GET
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportsTable
+
+  ListStationReports:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: list_reports.lambda_handler
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            # TODO: update path
+            Path: /reports
+            Method: GET
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportsTable
+
+  StationLastReport:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: last_report.lambda_handler
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            # TODO: update path
             Path: /hello
-            Method: get
+            Method: GET
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportsTable
 
-Outputs:
+  StationReportCounts:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: report_counts.lambda_handler
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            # TODO: update path
+            Path: /hello
+            Method: GET
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportsTable
 
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  ReportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: station
+          AttributeType: string
+        - AttributeName: date
+          AttributeType: string
+      KeySchema:
+        - AttributeName: station
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
