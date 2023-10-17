@@ -19,12 +19,12 @@ Resources:
   AddNewReport:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src/new_report
       Handler: new_report.lambda_handler
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
+        VoltageAPI:
           Type: Api
           Properties:
             Path: /reports
@@ -36,12 +36,12 @@ Resources:
   ListLastReports:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src/list_last
       Handler: list_last.lambda_handler
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
+        VoltageAPI:
           Type: Api
           Properties:
             Path: /last_reports
@@ -53,16 +53,16 @@ Resources:
   ListStationReports:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src/list_reports
       Handler: list_reports.lambda_handler
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
+        VoltageAPI:
           Type: Api
           Properties:
             # TODO: update path
-            Path: /reports
+            Path: /reports/{station}
             Method: GET
       Policies:
         - DynamoDBCrudPolicy:
@@ -71,16 +71,16 @@ Resources:
   StationLastReport:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src/last_report
       Handler: last_report.lambda_handler
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
+        VoltageAPI:
           Type: Api
           Properties:
             # TODO: update path
-            Path: /hello
+            Path: /last_reports/{station}
             Method: GET
       Policies:
         - DynamoDBCrudPolicy:
@@ -89,16 +89,16 @@ Resources:
   StationReportCounts:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src/report_counts
       Handler: report_counts.lambda_handler
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
+        VoltageAPI:
           Type: Api
           Properties:
             # TODO: update path
-            Path: /hello
+            Path: /reports/{station}/count
             Method: GET
       Policies:
         - DynamoDBCrudPolicy:
@@ -109,9 +109,9 @@ Resources:
     Properties:
       AttributeDefinitions:
         - AttributeName: station
-          AttributeType: string
+          AttributeType: S
         - AttributeName: date
-          AttributeType: string
+          AttributeType: S
       KeySchema:
         - AttributeName: station
           KeyType: HASH
