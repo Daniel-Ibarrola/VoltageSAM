@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from src import last_report
+from src.last_report import last_report
 
 
 @pytest.fixture()
@@ -69,4 +69,4 @@ def test_lambda_handler(apigw_event):
 
     assert ret["statusCode"] == 200
     assert "message" in ret["body"]
-    assert data["message"] == "hello world"
+    assert data["message"] == "Last Report"
