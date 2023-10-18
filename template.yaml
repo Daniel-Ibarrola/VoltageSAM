@@ -120,6 +120,7 @@ Resources:
   ReportsTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: VoltageReportsTable
       AttributeDefinitions:
         - AttributeName: station
           AttributeType: S

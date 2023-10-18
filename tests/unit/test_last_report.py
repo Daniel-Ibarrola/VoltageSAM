@@ -1,8 +1,10 @@
 import json
 
+from aws_lambda_powertools.utilities.validation import validate
 import pytest
 
 from src.last_report import last_report
+from src.last_report.schema import OUTPUT_SCHEMA
 
 
 @pytest.fixture()
@@ -64,9 +66,22 @@ def apigw_event():
 
 def test_lambda_handler(apigw_event):
 
-    ret = last_report.lambda_handler(apigw_event, "")
-    data = json.loads(ret["body"])
+    result = last_report.lambda_handler(apigw_event, "")
+    data = json.loads(result["body"])
 
-    assert ret["statusCode"] == 200
-    assert "message" in ret["body"]
-    assert data["message"] == "Last Report"
+    assert result["statusCode"] == 200
+    assert data["date"] == "2023-02-20T16:20:00"
+    assert data["battery"] == 55.0
+    assert data["panel"] == 60.0
+
+
+def test_schema_validation():
+    event = {
+        "statusCode": 200,
+        "body": json.dumps({
+            "date": "2023-02-23T16:20:00",
+            "battery": 55.0,
+            "panel": 60.0
+        }),
+    }
+    validate(event, schema=OUTPUT_SCHEMA)  # should not raise

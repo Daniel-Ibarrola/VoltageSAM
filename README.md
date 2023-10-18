@@ -57,7 +57,7 @@ Test a single function by invoking it directly with a test event. An event is a 
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```shell
-sam local invoke HelloWorldFunction --event events/event.json
+sam local invoke StationLastReport --event events/event.json
 ```
 
 ### Run DynamoDB locally

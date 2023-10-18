@@ -1,7 +1,17 @@
 import json
 
+from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.typing import LambdaContext
+from aws_lambda_powertools.utilities.validation import validator
 
-def lambda_handler(event, context):
+try:
+    from schema import OUTPUT_SCHEMA
+except ModuleNotFoundError:
+    from src.list_last.schema import OUTPUT_SCHEMA
+
+
+@validator(outbound_schema=OUTPUT_SCHEMA)
+def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
     """ Get the last reports of all stations
 
     Parameters
