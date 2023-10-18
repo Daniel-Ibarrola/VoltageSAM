@@ -16,6 +16,17 @@ Globals:
 
 Resources:
 
+  VoltageAPI:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: Prod
+        Auth:
+          DefaultAuthorizer: VoltageAuthorizer
+          Authorizers:
+            VoltageAuthorizer:
+              UserPoolArn: !GetAtt VoltageUserPool.Arn
+
+
   AddNewReport:
     Type: AWS::Serverless::Function
     Properties:
@@ -27,6 +38,7 @@ Resources:
         VoltageAPI:
           Type: Api
           Properties:
+            RestApiId: !Ref VoltageAPI
             Path: /reports
             Method: POST
       Policies:
@@ -44,6 +56,7 @@ Resources:
         VoltageAPI:
           Type: Api
           Properties:
+            RestApiId: !Ref VoltageAPI
             Path: /last_reports
             Method: GET
       Policies:
@@ -61,7 +74,7 @@ Resources:
         VoltageAPI:
           Type: Api
           Properties:
-            # TODO: update path
+            RestApiId: !Ref VoltageAPI
             Path: /reports/{station}
             Method: GET
       Policies:
@@ -79,7 +92,7 @@ Resources:
         VoltageAPI:
           Type: Api
           Properties:
-            # TODO: update path
+            RestApiId: !Ref VoltageAPI
             Path: /last_reports/{station}
             Method: GET
       Policies:
@@ -97,7 +110,7 @@ Resources:
         VoltageAPI:
           Type: Api
           Properties:
-            # TODO: update path
+            RestApiId: !Ref VoltageAPI
             Path: /reports/{station}/count
             Method: GET
       Policies:
@@ -120,3 +133,27 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2
+
+  VoltageUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      # MfaConfiguration: OFF
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      UsernameAttributes:
+        - email
+
+  VoltageUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref VoltageUserPool
+      GenerateSecret: false
