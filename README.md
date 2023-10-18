@@ -49,17 +49,37 @@ Copy the docker endpoint and run the command like this:
 DOCKER_HOST=unix:///home/daniel/.docker/desktop/docker.sock sam build --use-container
 ```
 
-## Run Locally
+## Local Development
 
-The SAM CLI installs dependencies defined in `hello_world/requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
+### Running a single lambda function locally
 
 Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
-
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```shell
 sam local invoke HelloWorldFunction --event events/event.json
 ```
+
+### Run DynamoDB locally
+
+Start DynamoDB Local in a Docker container (port 8000).
+
+```shell
+docker run -p 8000:8000 amazon/dynamodb-local
+```
+
+Creating the DynamoDB table:
+
+```shell
+aws dynamodb create-table \
+  --table-name VoltageReportsTable \
+  --attribute-definitions AttributeName=station,AttributeType=S AttributeName=date,AttributeType=S \
+  --key-schema AttributeName=station,KeyType=HASH AttributeName=date,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url http://localhost:8000
+```
+
+### Run API Gateway locally
 
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
 
@@ -70,14 +90,6 @@ curl http://localhost:3000/
 
 The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
 
-```yaml
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
-```
 
 ## Fetch, tail, and filter Lambda function logs
 
@@ -95,16 +107,46 @@ You can find more information and examples about filtering Lambda function logs 
 
 Tests are defined in the `tests` folder in this project. Use PIP to install the test dependencies and run tests.
 
+### Set up
+
+To run the tests first create a virtual environment and install necessary dependencies:
+
 ```shell
 python3.11 -m venv venv
 source venv/bin/activate
 pip install -r ./requirements/dev.txt
-# unit test
-pytest ./tests/unit
-# integration test, requiring deploying the stack first.
-# Create the env variable AWS_SAM_STACK_NAME with the name of the stack we are testing
-AWS_SAM_STACK_NAME="voltage-api" pytest ./tests/integration -v
 ```
+
+### Running unit tests
+
+With the virtual environment activated you can run the unit tests:
+
+```shell
+pytest ./tests/unit
+```
+
+### Integration tests
+
+#### Run against local infrastructure
+
+Integration tests can be run against API Gateway and DynamoDB running locally or on AWS.
+To run the test locally set the API_HOST env variable to 'localhost', example:
+
+```shell
+API_HOST="localhost" pytest ./tests/integration -v
+```
+
+The tests expect API Gateway to be running on port 3000. 
+
+#### Run against the cloud
+
+To run the integration tests against the API running set the env variable AWS_SAM_STACK_NAME to the correspoding
+stack name and set API_HOST to 'aws'. The stack needs to be deployed before running the tests:
+
+```shell
+API_HOST="aws" AWS_SAM_STACK_NAME="voltage-api" pytest ./tests/integration -v
+```
+
 
 ## Cleanup
 
