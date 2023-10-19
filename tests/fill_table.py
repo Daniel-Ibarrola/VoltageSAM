@@ -1,0 +1,17 @@
+from decimal import Decimal
+
+
+def fill_table(table, station: str) -> None:
+    """ Fill the dyanamo db table for testing."""
+    reports = [
+        {"station": station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
+        {"station": station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+        {"station": "Piedra Grande", "date": "2023-02-22T16:20:00", "battery": 34.0, "panel": 40.0}
+    ]
+    for rep in reports:
+        table.put_item(Item={
+            "station": rep["station"],
+            "date": rep["date"],
+            "battery": Decimal(rep["battery"]),
+            "panel": Decimal(rep["panel"]),
+        })
