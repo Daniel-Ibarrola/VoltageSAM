@@ -13,54 +13,33 @@ class TestApiGateway:
     api_host = os.environ.get("API_HOST", "localhost").lower()
 
     @staticmethod
-    def cloud_formation_stacks(stack_name: str):
-        if stack_name is None:
-            raise ValueError('Please set the AWS_SAM_STACK_NAME environment variable to the name of your stack')
-
-        client = boto3.client("cloudformation")
-
-        try:
-            response = client.describe_stacks(StackName=stack_name)
-        except Exception as e:
-            raise Exception(
-                f"Cannot find stack {stack_name} \n" f'Please make sure a stack with the name "{stack_name}" exists'
-            ) from e
-
-        return response["stacks"]
-
-    def get_aws_api_url(self) -> str:
-        """ Get the API Gateway URL from Cloudformation Stack outputs
-
-            Make sure env variable AWS_SAM_STACK_NAME exists with the name of the stack we are going to test.
+    def get_aws_api_url() -> str:
+        """ Get the API Gateway URL
         """
-        stack_name = os.environ.get("AWS_SAM_STACK_NAME")
-        stacks = self.cloud_formation_stacks(stack_name)
+        client = boto3.client("apigateway")
+        response = client.get_rest_apis()
 
-        stack_outputs = stacks[0]["Outputs"]
-        api_outputs = [output for output in stack_outputs if output["OutputKey"] == "HelloWorldApi"]
+        api = [it for it in response["items"] if "voltage" in it["name"]]
+        if not api:
+            raise ValueError(f"REST API not found")
 
-        if not api_outputs:
-            raise ValueError(f"VoltageAPI not found in stack {stack_name}")
+        api_id = api[0]["id"]
+        region = "us-east-2"
+        return f"https://{api_id}.execute-api.{region}.amazonaws.com/Prod"
 
-        return api_outputs[0]["OutputValue"]  # Extract url from stack outputs
-
-    def get_aws_dynamo_db_table(self) -> str:
-        """ Get the DynamoDB table name from Cloudformation Stack outputs
-
-            Make sure env variable AWS_SAM_STACK_NAME exists with the name of the stack we are going to test.
+    @staticmethod
+    def get_aws_dynamo_db_table() -> str:
+        """ Get the DynamoDB table name
         """
-        stack_name = os.environ.get("AWS_SAM_STACK_NAME")
-        stacks = self.cloud_formation_stacks(stack_name)
+        ddb = boto3.client("dynamodb")
+        response = ddb.list_tables()
+        table_names = [tb for tb in response["TableNames"] if "voltage" in tb.lower()]
 
-        stack_outputs = stacks[0]["Outputs"]
-        dynamodb_outputs = [output for output in stack_outputs if output["OutputKey"] == "DynamoDBTableName"]
+        if not table_names:
+            raise ValueError(f"Cannot find DynamoDB table")
+        return table_names[0]
 
-        if not dynamodb_outputs:
-            raise ValueError(f"Cannot find DynamoDB table in stack {stack_name}")
-
-        return dynamodb_outputs[0]["OutputValue"]
-
-    @pytest.fixture()
+    @pytest.fixture
     def api_gateway_url(self) -> str:
         """ Get the API URL. The API can be running locally or on AWS
         """
