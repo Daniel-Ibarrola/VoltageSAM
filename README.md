@@ -140,11 +140,10 @@ The tests expect API Gateway to be running on port 3000.
 
 #### Run against the cloud
 
-To run the integration tests against the API running set the env variable AWS_SAM_STACK_NAME to the correspoding
-stack name and set API_HOST to 'aws'. The stack needs to be deployed before running the tests:
+To run the integration tests against the API running set the env variable API_HOST to 'aws'. The stack needs to be deployed before running the tests:
 
 ```shell
-API_HOST="aws" AWS_SAM_STACK_NAME="voltage-api" pytest ./tests/integration -v
+API_HOST="aws" pytest ./tests/integration -v
 ```
 
 

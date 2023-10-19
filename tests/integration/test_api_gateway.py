@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 import os
 import time
 
@@ -97,8 +98,8 @@ class TestApiGateway:
             table.put_item(Item={
                 "station": rep["station"],
                 "date": rep["date"],
-                "battery": rep["battery"],
-                "panel": rep["panel"],
+                "battery": Decimal(rep["battery"]),
+                "panel": Decimal(rep["panel"]),
             })
 
         yield

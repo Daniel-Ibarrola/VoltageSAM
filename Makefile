@@ -7,7 +7,7 @@ help:
 
 
 api:  ## Start API Gateway locally (port 3000)
-	sam local start-api
+	DOCKER_HOST=unix:///home/daniel/.docker/desktop/docker.sock sam local start-api
 
 build:  ## Build the app
 	DOCKER_HOST=unix:///home/daniel/.docker/desktop/docker.sock sam build --use-container
@@ -19,7 +19,7 @@ dynamo:  ## Start DynamoDB locally (port 8000)
 	docker run -p 8000:8000 amazon/dynamodb-local
 
 cloud-test: ## Run integration tests against cloud API
-	API_HOST="aws" AWS_SAM_STACK_NAME="voltage-api" pytest ./tests/integration -v
+	API_HOST="aws" pytest ./tests/integration -v
 
 local-test:  ## Run integration test against local API
 	API_HOST="localhost" pytest ./tests/integration -v
