@@ -1,11 +1,12 @@
 from datetime import datetime
-from decimal import Decimal
 import os
 import time
 
 import boto3
 import pytest
 import requests
+
+from tests.fill_table import fill_table
 
 
 class TestApiGateway:
@@ -89,18 +90,7 @@ class TestApiGateway:
         table = self._dynamo_db_table()
         num_items = table.item_count
 
-        reports = [
-            {"station": self.station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
-            {"station": self.station,  "date": "2023-02-23T16:20:00",  "battery": 55.0, "panel": 60.0},
-            {"station": "Piedra Grande", "date": "2023-02-22T16:20:00", "battery": 34.0, "panel": 40.0}
-        ]
-        for rep in reports:
-            table.put_item(Item={
-                "station": rep["station"],
-                "date": rep["date"],
-                "battery": Decimal(rep["battery"]),
-                "panel": Decimal(rep["panel"]),
-            })
+        reports = fill_table(table, self.station)
 
         yield
 

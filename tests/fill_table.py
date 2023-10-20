@@ -1,8 +1,10 @@
 from decimal import Decimal
 
+TABLE_NAME = "test_table"
 
-def fill_table(table, station: str) -> None:
-    """ Fill the dyanamo db table for testing."""
+
+def fill_table(table, station: str) -> list[dict]:
+    """ Fill the DynamoDb table for testing."""
     reports = [
         {"station": station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
         {"station": station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
@@ -15,3 +17,5 @@ def fill_table(table, station: str) -> None:
             "battery": Decimal(rep["battery"]),
             "panel": Decimal(rep["panel"]),
         })
+
+    return reports

@@ -1,78 +1,53 @@
 import json
+import os
+from typing import Callable
 
 from aws_lambda_powertools.utilities.validation import validate
+from moto import mock_dynamodb
 import pytest
 
-from src.last_report import last_report
+from .event import generate_event
 from src.last_report.schema import OUTPUT_SCHEMA
+from tests.fill_table import TABLE_NAME
+
+# Set the table name variable before importing lambda function to avoid raising an error
+os.environ["DYNAMODB_TABLE_NAME"] = TABLE_NAME
 
 
-@pytest.fixture()
-def apigw_event():
-    """ Generates API GW Event"""
+class TestListReports:
+    """ Class for unit testing the lambda function that returns the
+        last report of a station.
+    """
 
-    return {
-        "body": '{ "test": "body"}',
-        "resource": "/{proxy+}",
-        "requestContext": {
-            "resourceId": "123456",
-            "apiId": "1234567890",
-            "resourcePath": "/{proxy+}",
-            "httpMethod": "POST",
-            "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
-            "accountId": "123456789012",
-            "identity": {
-                "apiKey": "",
-                "userArn": "",
-                "cognitoAuthenticationType": "",
-                "caller": "",
-                "userAgent": "Custom User Agent String",
-                "user": "",
-                "cognitoIdentityPoolId": "",
-                "cognitoIdentityId": "",
-                "cognitoAuthenticationProvider": "",
-                "sourceIp": "127.0.0.1",
-                "accountId": "",
-            },
-            "stage": "prod",
-        },
-        "queryStringParameters": {"foo": "bar"},
-        "headers": {
-            "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
-            "Accept-Language": "en-US,en;q=0.8",
-            "CloudFront-Is-Desktop-Viewer": "true",
-            "CloudFront-Is-SmartTV-Viewer": "false",
-            "CloudFront-Is-Mobile-Viewer": "false",
-            "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
-            "CloudFront-Viewer-Country": "US",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Upgrade-Insecure-Requests": "1",
-            "X-Forwarded-Port": "443",
-            "Host": "1234567890.execute-api.us-east-1.amazonaws.com",
-            "X-Forwarded-Proto": "https",
-            "X-Amz-Cf-Id": "aaaaaaaaaae3VYQb9jd-nvCd-de396Uhbp027Y2JvkCPNLmGJHqlaA==",
-            "CloudFront-Is-Tablet-Viewer": "false",
-            "Cache-Control": "max-age=0",
-            "User-Agent": "Custom User Agent String",
-            "CloudFront-Forwarded-Proto": "https",
-            "Accept-Encoding": "gzip, deflate, sdch",
-        },
-        "pathParameters": {"proxy": "/examplepath"},
-        "httpMethod": "POST",
-        "stageVariables": {"baz": "qux"},
-        "path": "/examplepath",
-    }
+    @staticmethod
+    def get_handler() -> Callable:
+        """ Returns the lambda handler.
 
+            Handler is imported here to make sure boto3 gets mocked
+        """
+        from src.last_report.last_report import lambda_handler
+        return lambda_handler
 
-def test_lambda_handler(apigw_event):
+    @mock_dynamodb
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_station_last_report_happy_path(self, station_fixture):
+        handler = self.get_handler()
+        event = generate_event({"station": station_fixture})
+        lambda_output = handler(event, "")
+        data = json.loads(lambda_output["body"])
 
-    result = last_report.lambda_handler(apigw_event, "")
-    data = json.loads(result["body"])
+        assert lambda_output["statusCode"] == 200
+        assert data == {"date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0}
 
-    assert result["statusCode"] == 200
-    assert data["date"] == "2023-02-20T16:20:00"
-    assert data["battery"] == 55.0
-    assert data["panel"] == 60.0
+    @mock_dynamodb
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_station_not_found(self):
+        handler = self.get_handler()
+        event = generate_event({"station": "Caracol"})
+        lambda_output = handler(event, "")
+
+        assert lambda_output["statusCode"] == 404
+        assert lambda_output["body"]["message"] == "Station 'Caracol' not found"
 
 
 def test_schema_validation():

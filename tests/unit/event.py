@@ -3,7 +3,8 @@ from typing import Optional
 
 def generate_event(
         path_params: Optional[dict[str, str]] = None,
-        query_string_params: Optional[dict[str, str]] = None
+        query_string_params: Optional[dict[str, str]] = None,
+        body: Optional[str | dict] = None
 ) -> dict:
     """ Generate an event for testing lambda functions.
     """
@@ -11,6 +12,8 @@ def generate_event(
         path_params = {}
     if query_string_params is None:
         query_string_params = {}
+    if body is None:
+        body = "eyJ0ZXN0IjoiYm9keSJ9"
 
     return {
       "version": "2.0",
@@ -68,7 +71,7 @@ def generate_event(
         "time": "12/Mar/2020:19:03:58 +0000",
         "timeEpoch": 1583348638390
       },
-      "body": "eyJ0ZXN0IjoiYm9keSJ9",
+      "body": body,
       "pathParameters": path_params,
       "isBase64Encoded": True,
       "stageVariables": {
