@@ -2,7 +2,6 @@ import json
 import os
 from typing import Callable
 
-from moto import mock_dynamodb
 import pytest
 
 from .event import generate_event
@@ -25,7 +24,6 @@ class TestListReports:
         from src.list_reports.list_reports import lambda_handler
         return lambda_handler
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_reports_happy_path(self, station_fixture):
         handler = self.get_handler()
@@ -35,19 +33,27 @@ class TestListReports:
 
         assert lambda_output["statusCode"] == 200
         assert data == [
-            {"date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
-            {"date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+            {"station": station_fixture, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
+            {"station": station_fixture, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
         ]
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_not_found(self):
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
         lambda_output = handler(event, "")
 
+        data = json.loads(lambda_output["body"])
         assert lambda_output["statusCode"] == 404
-        assert lambda_output["body"]["message"] == "Station 'Caracol' not found"
+        assert data["message"] == "Station 'Caracol' not found"
+
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_no_station_passed(self):
+        handler = self.get_handler()
+        event = generate_event()
+        lambda_output = handler(event, "")
+
+        assert lambda_output["statusCode"] == 400
 
     def test_get_reports_from_starting_date(self):
         # TODO: complete me!

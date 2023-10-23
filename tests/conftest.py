@@ -12,39 +12,43 @@ def station_fixture() -> str:
 
 
 @pytest.fixture
-@mock_dynamodb
 def mock_dynamo_db(station_fixture: str) -> None:
+    """ Fixture creates a mock DynamoDB table with three items.
+
+        All tests using this fixture will have DynamoDB mocked.
+    """
     table_name = "test_table"
     os.environ["DYNAMODB_TABLE_NAME"] = table_name
 
-    mock_dynamo = boto3.resource("dynamodb")
-    table = mock_dynamo.create_table(
-        TableName=table_name,
-        KeySchema=[
-            {
-                "AttributeName": "station",
-                "KeyType": "HASH"
-            },
-            {
-                "AttributeName": "date",
-                "KeyType": "RANGE"
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                "AttributeName": "station",
-                "AttributeType": "S"
-            },
-            {
-                "AttributeName": "date",
-                "AttributeType": "S"
-            }
-        ],
-        BillingMode='PAY_PER_REQUEST',
-    )
-    fill_table(table, station_fixture)
+    with mock_dynamodb():
+        mock_dynamo = boto3.resource("dynamodb")
+        table = mock_dynamo.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {
+                    "AttributeName": "station",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "date",
+                    "KeyType": "RANGE"
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    "AttributeName": "station",
+                    "AttributeType": "S"
+                },
+                {
+                    "AttributeName": "date",
+                    "AttributeType": "S"
+                }
+            ],
+            BillingMode='PAY_PER_REQUEST',
+        )
+        fill_table(table, station_fixture)
 
-    yield
+        yield
 
-    table.delete()
-    del os.environ["DYNAMODB_TABLE_NAME"]
+        table.delete()
+        del os.environ["DYNAMODB_TABLE_NAME"]
