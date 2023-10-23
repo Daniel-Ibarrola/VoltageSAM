@@ -26,7 +26,6 @@ class TestListReports:
         from src.last_report.last_report import lambda_handler
         return lambda_handler
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_last_report_happy_path(self, station_fixture):
         handler = self.get_handler()
@@ -40,7 +39,6 @@ class TestListReports:
             {"date": "2023-02-23", "count": 1},
         ]
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_not_found(self):
         handler = self.get_handler()

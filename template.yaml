@@ -11,8 +11,9 @@ Globals:
     Timeout: 3
     Environment:
       Variables:
-        TABLE_NAME: !Ref ReportsTable
+        DYNAMODB_TABLE_NAME: VoltageReportsTable
         REGION_NAME: !Ref AWS::Region
+
 
 Resources:
 

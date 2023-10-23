@@ -26,7 +26,6 @@ class TestListReports:
         from src.new_report.new_report import lambda_handler
         return lambda_handler
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_reports_happy_path(self, station_fixture):
         date = datetime(2023, 2, 22, 16, 20, 0)

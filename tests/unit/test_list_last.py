@@ -26,7 +26,6 @@ class TestListReports:
         from src.list_last.list_last import lambda_handler
         return lambda_handler
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_last_reports_happy_path(self, station_fixture):
         handler = self.get_handler()

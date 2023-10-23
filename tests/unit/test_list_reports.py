@@ -55,6 +55,18 @@ class TestListReports:
 
         assert lambda_output["statusCode"] == 400
 
-    def test_get_reports_from_starting_date(self):
-        # TODO: complete me!
-        pass
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_get_reports_from_starting_date(self, station_fixture):
+        handler = self.get_handler()
+        event = generate_event(
+            path_params={"station": station_fixture},
+            query_string_params={"start_date": "2023-02-23T00:00:00"}
+        )
+
+        lambda_output = handler(event, "")
+        data = json.loads(lambda_output["body"])
+
+        assert lambda_output["statusCode"] == 200
+        assert data == [
+            {"station": station_fixture, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+        ]

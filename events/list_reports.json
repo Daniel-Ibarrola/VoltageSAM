@@ -11,10 +11,7 @@
     "Header1": "value1",
     "Header2": "value1,value2"
   },
-  "queryStringParameters": {
-    "parameter1": "value1,value2",
-    "parameter2": "value"
-  },
+  "queryStringParameters": null,
   "requestContext": {
     "accountId": "123456789012",
     "apiId": "api-id",
@@ -59,7 +56,7 @@
   },
   "body": "eyJ0ZXN0IjoiYm9keSJ9",
   "pathParameters": {
-    "id": "TEST001"
+    "station": "tonalapa"
   },
   "isBase64Encoded": true,
   "stageVariables": {

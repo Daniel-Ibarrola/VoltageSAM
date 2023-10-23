@@ -3,7 +3,6 @@ import os
 from typing import Callable
 
 from aws_lambda_powertools.utilities.validation import validate
-from moto import mock_dynamodb
 import pytest
 
 from .event import generate_event
@@ -28,8 +27,6 @@ class TestListReports:
         from src.last_report.last_report import lambda_handler
         return lambda_handler
 
-    @mock_dynamodb
-    @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_last_report_happy_path(self, station_fixture):
         handler = self.get_handler()
         event = generate_event({"station": station_fixture})
@@ -39,7 +36,6 @@ class TestListReports:
         assert lambda_output["statusCode"] == 200
         assert data == {"date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0}
 
-    @mock_dynamodb
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_not_found(self):
         handler = self.get_handler()

@@ -9,9 +9,9 @@ def generate_event(
     """ Generate an event for testing lambda functions.
     """
     if path_params is None:
-        path_params = {}
+        path_params = None
     if query_string_params is None:
-        query_string_params = {}
+        query_string_params = None
     if body is None:
         body = "eyJ0ZXN0IjoiYm9keSJ9"
 

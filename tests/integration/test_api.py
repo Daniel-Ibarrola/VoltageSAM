@@ -3,6 +3,7 @@ import os
 import time
 
 import boto3
+from botocore.exceptions import ClientError
 import pytest
 import requests
 
@@ -10,7 +11,6 @@ from tests.fill_table import fill_table
 
 
 class TestApiGateway:
-
     station = "tonalapa"
     api_host = os.environ.get("API_HOST", "localhost").lower()
 
@@ -31,7 +31,7 @@ class TestApiGateway:
 
     @staticmethod
     def get_aws_dynamo_db_table() -> str:
-        """ Get the DynamoDB table name
+        """ Get the DynamoDB table name from AWS
         """
         ddb = boto3.client("dynamodb")
         response = ddb.list_tables()
@@ -70,18 +70,58 @@ class TestApiGateway:
         pytest.fail("Could not connect to API")
 
     def _dynamo_db_table(self):
+        if self.api_host not in {"localhost", "aws"}:
+            raise ValueError(
+                "Invalid value for env variable API_HOST. "
+                "Valid values are 'aws' and 'localhost'."
+            )
+
         if self.api_host == "localhost":
             ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
-            return ddb_resource.Table("VoltageReportsTable")
+            table_name = "VoltageReportsTableTest"
+            table = ddb_resource.Table(table_name)
 
-        elif self.api_host == "aws":
+        else:
             ddb_resource = boto3.resource("dynamodb")
-            return ddb_resource.Table(self.get_aws_dynamo_db_table())
+            table_name = self.get_aws_dynamo_db_table()
+            table = ddb_resource.Table(table_name)
 
-        raise ValueError(
-            "Invalid value for env variable API_HOST. "
-            "Valid values are 'aws' and 'localhost'."
-        )
+        print(f"Table {table_name}")
+
+        try:
+            table.item_count
+        except ClientError as err:
+            err_name = err.response["Error"]["Code"]
+            if err_name == "ResourceNotFoundException" and self.api_host == "localhost":
+                ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
+                table = ddb_resource.create_table(
+                    TableName="VoltageReportsTableTest",
+                    KeySchema=[
+                        {
+                            "AttributeName": "station",
+                            "KeyType": "HASH"
+                        },
+                        {
+                            "AttributeName": "date",
+                            "KeyType": "RANGE"
+                        }
+                    ],
+                    AttributeDefinitions=[
+                        {
+                            "AttributeName": "station",
+                            "AttributeType": "S"
+                        },
+                        {
+                            "AttributeName": "date",
+                            "AttributeType": "S"
+                        }
+                    ],
+                    BillingMode='PAY_PER_REQUEST',
+                )
+            else:
+                raise ValueError("An error occurred with DynamoDB table")
+
+        return table
 
     @pytest.fixture()
     def dynamo_db(self) -> None:
@@ -91,6 +131,7 @@ class TestApiGateway:
         num_items = table.item_count
 
         reports = fill_table(table, self.station)
+        print(f"Items in table {table.item_count}")
 
         yield
 
@@ -139,7 +180,9 @@ class TestApiGateway:
         response = requests.get(url)
 
         assert response.status_code == 200
-        assert response.json() == {"date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0}
+        assert response.json() == {
+            "station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0
+        }
 
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
@@ -163,8 +206,8 @@ class TestApiGateway:
 
         assert response.status_code == 200
         assert response.json() == [
-            {"date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
-            {"date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+            {"station": self.station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
+            {"station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
         ]
 
     @pytest.mark.usefixtures("dynamo_db")

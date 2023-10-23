@@ -7,7 +7,7 @@ help:
 
 
 api:  ## Start API Gateway locally (port 3000)
-	DOCKER_HOST=unix:///home/daniel/.docker/desktop/docker.sock sam local start-api
+	DOCKER_HOST=unix:///home/daniel/.docker/desktop/docker.sock sam local start-api --env-vars env.json
 
 build:  ## Build the app
 	DOCKER_HOST=unix:///home/daniel/.docker/desktop/docker.sock sam build --use-container

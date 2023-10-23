@@ -34,6 +34,12 @@ Build your application with the `sam build --use-container` command.
 sam build --use-container
 ```
 
+Alternatively you can call:
+
+```shell
+make build
+```
+
 ### Issues with Docker
 
 If sam cli is not able to find docker, set the DOCKER_HOST environment variable with the docker endpoint.
@@ -66,6 +72,12 @@ Start DynamoDB Local in a Docker container (port 8000).
 
 ```shell
 docker run -p 8000:8000 amazon/dynamodb-local
+```
+
+Alternatively you can use:
+
+```shell
+make dynamo
 ```
 
 Creating the DynamoDB table:
@@ -136,6 +148,12 @@ To run the test locally set the API_HOST env variable to 'localhost', example:
 API_HOST="localhost" pytest ./tests/integration -v
 ```
 
+Alternatively you can call:
+
+```shell
+make local-test
+```
+
 The tests expect API Gateway to be running on port 3000. 
 
 #### Run against the cloud
@@ -146,6 +164,11 @@ To run the integration tests against the API running set the env variable API_HO
 API_HOST="aws" pytest ./tests/integration -v
 ```
 
+Alternatively you can call:
+
+```shell
+make cloud-test
+```
 
 ## Cleanup
 
