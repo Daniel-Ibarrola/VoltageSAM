@@ -15,8 +15,7 @@ except ModuleNotFoundError:
 
 table_name = os.environ["DYNAMODB_TABLE_NAME"]
 if "test" in table_name.lower():
-    # TODO: sam local cannot connect to dynamo db in different network
-    dynamodb_resource = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
+    dynamodb_resource = boto3.resource('dynamodb', endpoint_url="http://dynamo-local:8000")
 else:
     dynamodb_resource = boto3.resource('dynamodb')
 table = dynamodb_resource.Table(table_name)

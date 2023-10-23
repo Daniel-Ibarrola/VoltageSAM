@@ -68,10 +68,17 @@ sam local invoke StationLastReport --event events/event.json
 
 ### Run DynamoDB locally
 
-Start DynamoDB Local in a Docker container (port 8000).
+Start DynamoDB Local in a Docker container (port 8000). First, create a docker network, so the
+local API Gateway container can connect to local dynamo db
 
 ```shell
-docker run -p 8000:8000 amazon/dynamodb-local
+docker network create voltage-api-net
+```
+
+Now create the DynamoDB container
+
+```shell
+docker run -p 8000:8000 --network voltage-api-net --name dynamo-local amazon/dynamodb-local
 ```
 
 Alternatively you can use:
@@ -80,15 +87,10 @@ Alternatively you can use:
 make dynamo
 ```
 
-Creating the DynamoDB table:
+Now check that dynamo is running correctly:
 
 ```shell
-aws dynamodb create-table \
-  --table-name VoltageReportsTable \
-  --attribute-definitions AttributeName=station,AttributeType=S AttributeName=date,AttributeType=S \
-  --key-schema AttributeName=station,KeyType=HASH AttributeName=date,KeyType=RANGE \
-  --billing-mode PAY_PER_REQUEST \
-  --endpoint-url http://localhost:8000
+aws dynamodb list-tables --endpoint-url http://localhost:8000
 ```
 
 ### Run API Gateway locally
@@ -96,8 +98,13 @@ aws dynamodb create-table \
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
 
 ```shell
-sam local start-api
-curl http://localhost:3000/
+sam local start-api --docker-network voltage-api-net
+```
+
+Alternatively you can use:
+
+```shell
+make api
 ```
 
 The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
