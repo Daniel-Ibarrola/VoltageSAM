@@ -5,7 +5,7 @@ from typing import Callable
 import pytest
 
 from .event import generate_event
-from tests.fill_table import TABLE_NAME
+from tests.unit.table import TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
 os.environ["DYNAMODB_TABLE_NAME"] = TABLE_NAME

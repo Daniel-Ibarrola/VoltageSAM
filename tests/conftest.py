@@ -4,6 +4,7 @@ import pytest
 import os
 
 from tests.fill_table import fill_table
+from tests.unit.table import TABLE_NAME
 
 
 @pytest.fixture
@@ -17,13 +18,12 @@ def mock_dynamo_db(station_fixture: str) -> None:
 
         All tests using this fixture will have DynamoDB mocked.
     """
-    table_name = "test_table"
-    os.environ["DYNAMODB_TABLE_NAME"] = table_name
+    os.environ["DYNAMODB_TABLE_NAME"] = TABLE_NAME
 
     with mock_dynamodb():
         mock_dynamo = boto3.resource("dynamodb")
         table = mock_dynamo.create_table(
-            TableName=table_name,
+            TableName=TABLE_NAME,
             KeySchema=[
                 {
                     "AttributeName": "station",

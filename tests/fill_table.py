@@ -1,7 +1,5 @@
 from decimal import Decimal
 
-TABLE_NAME = "test_table"
-
 
 def fill_table(table, station: str) -> list[dict]:
     """ Fill the DynamoDB table for testing."""

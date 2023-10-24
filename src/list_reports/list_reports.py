@@ -13,11 +13,16 @@ except ModuleNotFoundError:
     from src.list_reports.schema import OUTPUT_SCHEMA
 
 
+def get_dynamodb_resource(t_name: str):
+    t_name = t_name.lower()
+    if "local" in t_name:
+        return boto3.resource('dynamodb', endpoint_url="http://dynamo-local:8000")
+    else:
+        return boto3.resource('dynamodb')
+
+
 table_name = os.environ["DYNAMODB_TABLE_NAME"]
-if "test" in table_name.lower():
-    dynamodb_resource = boto3.resource('dynamodb', endpoint_url="http://dynamo-local:8000")
-else:
-    dynamodb_resource = boto3.resource('dynamodb')
+dynamodb_resource = get_dynamodb_resource(table_name)
 table = dynamodb_resource.Table(table_name)
 
 

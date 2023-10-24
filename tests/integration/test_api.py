@@ -1,33 +1,35 @@
 from datetime import datetime
-import os
 import time
+from typing import Literal
 
 import boto3
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 import pytest
 import requests
 
 from tests.fill_table import fill_table
+from tests.integration.client import APIClient
+from tests.integration.env import get_env_var
+
+
+load_dotenv()
 
 
 class TestApiGateway:
-    station = "tonalapa"
-    api_host = os.environ.get("API_HOST", "localhost").lower()
+
+    def setup_method(self, method):
+        self.station = "tonalapa"
+        self.api_host = self.get_api_host()
+        self.client = APIClient(self.api_host)
 
     @staticmethod
-    def get_aws_api_url() -> str:
-        """ Get the API Gateway URL
-        """
-        client = boto3.client("apigateway")
-        response = client.get_rest_apis()
-
-        api = [it for it in response["items"] if "voltage" in it["name"]]
-        if not api:
-            raise ValueError(f"REST API not found")
-
-        api_id = api[0]["id"]
-        region = "us-east-2"
-        return f"https://{api_id}.execute-api.{region}.amazonaws.com/Prod"
+    def get_api_host() -> Literal["localhost", "aws"]:
+        host = get_env_var("API_HOST", "localhost").lower()
+        choices = {"localhost", "aws"}
+        if host not in choices:
+            raise ValueError(f"Invalid API hot {host}. Host must be one of {choices}")
+        return host
 
     @staticmethod
     def get_aws_dynamo_db_table() -> str:
@@ -42,43 +44,23 @@ class TestApiGateway:
         return table_names[0]
 
     @pytest.fixture
-    def api_gateway_url(self) -> str:
-        """ Get the API URL. The API can be running locally or on AWS
-        """
-        if self.api_host == "localhost":
-            return "http://localhost:3000"
-        elif self.api_host == "aws":
-            return self.get_aws_api_url()
-        else:
-            pytest.fail(
-                "Invalid value for env variable API_HOST. "
-                "Valid values are 'aws' and 'localhost'."
-            )
-
-    @pytest.fixture
-    def wait_for_api(self, api_gateway_url: str):
+    def wait_for_api(self):
         """ Try to connect to the API. If it is not possible after 10 seconds
             stop the tests.
         """
         start = time.time()
         while time.time() - start < 10:
             try:
-                requests.get(api_gateway_url)
+                requests.get(self.client.api_gateway_url)
                 return
             except requests.ConnectionError:
                 continue
         pytest.fail("Could not connect to API")
 
     def _dynamo_db_table(self):
-        if self.api_host not in {"localhost", "aws"}:
-            raise ValueError(
-                "Invalid value for env variable API_HOST. "
-                "Valid values are 'aws' and 'localhost'."
-            )
-
         if self.api_host == "localhost":
             ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
-            table_name = "VoltageReportsTableTest"
+            table_name = "VoltageReportsTableLocal"
             table = ddb_resource.Table(table_name)
 
         else:
@@ -95,7 +77,7 @@ class TestApiGateway:
             if err_name == "ResourceNotFoundException" and self.api_host == "localhost":
                 ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
                 table = ddb_resource.create_table(
-                    TableName="VoltageReportsTableTest",
+                    TableName="VoltageReportsTableLocal",
                     KeySchema=[
                         {
                             "AttributeName": "station",
@@ -153,70 +135,60 @@ class TestApiGateway:
             "date": date
         })
 
-    @pytest.mark.usefixtures("clean_up_db")
-    @pytest.mark.usefixtures("wait_for_api")
-    def test_add_new_report(self, api_gateway_url: str) -> None:
-        """ Add a new report. """
-        date = datetime(2023, 2, 22, 16, 20, 0)
-        date_str = date.strftime("%Y/%m/%d,%H:%M:%S")
-        url = f"{api_gateway_url}/reports"
-        res = requests.post(url, json={
-            "station": "Caracol",
-            "date": date_str,
-            "battery": 20.0,
-            "panel": 15.5,
-        })
-        assert res.ok
-        assert res.json() == {
-            "station": "caracol", "date": date.isoformat(), "battery": 20.0, "panel": 15.5
-        }
-
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
-    def test_station_last_report(self, api_gateway_url: str):
-        """ Get the last report of a station. """
-
-        url = f"{api_gateway_url}/last_reports/{self.station}"
-        response = requests.get(url)
-
-        assert response.status_code == 200
-        assert response.json() == {
-            "station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0
-        }
-
-    @pytest.mark.usefixtures("dynamo_db")
-    @pytest.mark.usefixtures("wait_for_api")
-    def test_last_reports(self, api_gateway_url: str):
-        """ Get the last reports of every station """
-        url = f"{api_gateway_url}/last_reports"
-        response = requests.get(url)
-
-        assert response.status_code == 200
-        assert response.json() == [
-            {"station": "tonalapa", "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
-            {"station": "piedra grande", "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
-        ]
-
-    @pytest.mark.usefixtures("dynamo_db")
-    @pytest.mark.usefixtures("wait_for_api")
-    def test_get_station_reports(self, api_gateway_url: str):
-        """ Get the reports of a station. """
-        url = f"{api_gateway_url}/reports/{self.station}"
-        response = requests.get(url)
-
+    def test_get_station_reports(self):
+        """ Get the reports of a station.
+        """
+        response = self.client.station_reports(self.station)
         assert response.status_code == 200
         assert response.json() == [
             {"station": self.station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
             {"station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
         ]
 
+    @pytest.mark.skip(reason="Endpoint not implemented yet")
+    @pytest.mark.usefixtures("clean_up_db")
+    @pytest.mark.usefixtures("wait_for_api")
+    def test_add_new_report(self) -> None:
+        """ Add a new report. """
+        date = datetime(2023, 2, 22, 16, 20, 0)
+        date_str = date.strftime("%Y/%m/%d,%H:%M:%S")
+        res = self.client.new_station_report("Caracol", date_str, 20.0, 15.5)
+        assert res.ok
+        assert res.json() == {
+            "station": "caracol", "date": date.isoformat(), "battery": 20.0, "panel": 15.5
+        }
+
+    @pytest.mark.skip(reason="Endpoint not implemented yet")
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
-    def test_get_station_reports_count(self, api_gateway_url: str):
-        """ Get the count of reports of a station. """
-        url = f"{api_gateway_url}/reports/{self.station}/count"
-        response = requests.get(url)
+    def test_station_last_report(self):
+        """ Get the last report of a station. """
+        response = self.client.station_last_report(self.station)
+        assert response.status_code == 200
+        assert response.json() == {
+            "station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0
+        }
 
+    @pytest.mark.skip(reason="Endpoint not implemented yet")
+    @pytest.mark.usefixtures("dynamo_db")
+    @pytest.mark.usefixtures("wait_for_api")
+    def test_last_reports(self):
+        """ Get the last reports of every station """
+        response = self.client.last_reports()
+        assert response.status_code == 200
+        assert response.json() == [
+            {"station": "tonalapa", "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
+            {"station": "piedra grande", "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+        ]
+
+    @pytest.mark.skip(reason="Endpoint not implemented yet")
+    @pytest.mark.usefixtures("dynamo_db")
+    @pytest.mark.usefixtures("wait_for_api")
+    def test_get_station_reports_count(self):
+        """ Get the count of reports of a station. """
+        response = self.client.station_reports_count(self.station)
         assert response.status_code == 200
         assert response.json() == [
             {"date": "2023-02-22", "count": 1},
