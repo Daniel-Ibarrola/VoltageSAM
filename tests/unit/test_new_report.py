@@ -7,7 +7,7 @@ from moto import mock_dynamodb
 import pytest
 
 from .event import generate_event
-from tests.fill_table import TABLE_NAME
+from tests.unit.table import TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
 os.environ["DYNAMODB_TABLE_NAME"] = TABLE_NAME
@@ -38,3 +38,15 @@ class TestListReports:
 
         assert lambda_output["statusCode"] == 201
         assert data == {"station": "caracol", "date": date.isoformat(), "battery": 20.0, "panel": 15.5}
+
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_report_already_exists(self, station_fixture):
+        report = {"station": station_fixture, "date": "2023/02/22,16:20:00", "battery": 45.0, "panel": 68.0}
+        handler = self.get_handler()
+        event = generate_event(body=report)
+
+        lambda_output = handler(event, "")
+        data = json.loads(lambda_output["body"])
+
+        assert lambda_output["statusCode"] == 400
+        assert data["message"] == "Report for the given station and date already exists."

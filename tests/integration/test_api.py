@@ -142,12 +142,16 @@ class TestApiGateway:
         """
         response = self.client.station_reports(self.station)
         assert response.status_code == 200
-        assert response.json() == [
-            {"station": self.station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
-            {"station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
-        ]
+        # TODO: reports should be sorted in descending order
+        # TODO: consider pagination
+        assert response.json() == {
+            "reports": [
+                {"station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+                {"station": self.station, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
+            ],
+            "nextKey": None
+        }
 
-    @pytest.mark.skip(reason="Endpoint not implemented yet")
     @pytest.mark.usefixtures("clean_up_db")
     @pytest.mark.usefixtures("wait_for_api")
     def test_add_new_report(self) -> None:
@@ -160,7 +164,6 @@ class TestApiGateway:
             "station": "caracol", "date": date.isoformat(), "battery": 20.0, "panel": 15.5
         }
 
-    @pytest.mark.skip(reason="Endpoint not implemented yet")
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
     def test_station_last_report(self):
@@ -171,26 +174,27 @@ class TestApiGateway:
             "station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0
         }
 
-    @pytest.mark.skip(reason="Endpoint not implemented yet")
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
     def test_last_reports(self):
         """ Get the last reports of every station """
         response = self.client.last_reports()
         assert response.status_code == 200
-        assert response.json() == [
+        assert response.json() == {"reports": [
             {"station": "tonalapa", "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
             {"station": "piedra grande", "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
-        ]
+        ]}
 
-    @pytest.mark.skip(reason="Endpoint not implemented yet")
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
     def test_get_station_reports_count(self):
         """ Get the count of reports of a station. """
         response = self.client.station_reports_count(self.station)
         assert response.status_code == 200
-        assert response.json() == [
-            {"date": "2023-02-22", "count": 1},
-            {"date": "2023-02-23", "count": 1},
-        ]
+        assert response.json() == {
+            "reports": [
+                {"date": "2023-02-23", "count": 1},
+                {"date": "2023-02-22", "count": 1},
+            ],
+            "nextKey": None
+        }

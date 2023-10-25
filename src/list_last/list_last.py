@@ -26,6 +26,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
     ------
     dict
     """
+    # TODO: create last reports table
     return {
         "statusCode": 200,
         "body": json.dumps({

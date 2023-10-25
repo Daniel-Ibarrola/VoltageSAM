@@ -62,17 +62,33 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
 
     print(f"Requested reports for station {station}")
 
-    query_params = event.get("queryStringParameters")
-    if query_params is not None:
-        start_date = query_params.get("start_date", "")
-    else:
-        start_date = None
+    start_date = ""
+    next_key = {}
+    if "queryStringParameters" in event and event["queryStringParameters"]:
+        start_date = event["queryStringParameters"].get("start_date", "")
+        next_key = event["queryStringParameters"].get("next_key", "")
 
-    if not start_date:
-        ddb_res = table.query(KeyConditionExpression=Key("station").eq(station.lower()))
+    if not start_date and not next_key:
+        ddb_res = table.query(
+            KeyConditionExpression=Key("station").eq(station.lower()),
+            ScanIndexForward=False
+        )
+    elif start_date and not next_key:
+        ddb_res = table.query(
+            KeyConditionExpression=Key("station").eq(station.lower()) & Key("date").gte(start_date),
+            ScanIndexForward=False
+        )
+    elif not start_date and not next_key:
+        ddb_res = table.query(
+            KeyConditionExpression=Key("station").eq(station.lower()),
+            ScanIndexForward=False,
+            ExclusiveStartKey=next_key
+        )
     else:
         ddb_res = table.query(
-            KeyConditionExpression=Key("station").eq(station.lower()) & Key("date").gte(start_date)
+            KeyConditionExpression=Key("station").eq(station.lower()) & Key("date").gte(start_date),
+            ScanIndexForward=False,
+            ExclusiveStartKey=next_key
         )
 
     reports = ddb_res["Items"]
@@ -84,4 +100,9 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
         rep["battery"] = float(rep["battery"])
         rep["panel"] = float(rep["panel"])
 
-    return respond(200, reports)
+    next_key = None
+    if "LastEvaluatedKey" in ddb_res:
+        next_key = ddb_res["LastEvaluatedKey"]
+
+    response = {"reports": reports, "nextKey": next_key}
+    return respond(200, response)

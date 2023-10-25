@@ -28,22 +28,24 @@ class TestListReports:
     def test_station_reports_happy_path(self, station_fixture):
         handler = self.get_handler()
         event = generate_event({"station": station_fixture})
+
         lambda_output = handler(event, "")
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
-        assert data == [
-            {"station": station_fixture, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
+        assert data["reports"] == [
             {"station": station_fixture, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+            {"station": station_fixture, "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
         ]
 
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_not_found(self):
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
-        lambda_output = handler(event, "")
 
+        lambda_output = handler(event, "")
         data = json.loads(lambda_output["body"])
+
         assert lambda_output["statusCode"] == 404
         assert data["message"] == "Station 'Caracol' not found"
 
@@ -52,7 +54,6 @@ class TestListReports:
         handler = self.get_handler()
         event = generate_event()
         lambda_output = handler(event, "")
-
         assert lambda_output["statusCode"] == 400
 
     @pytest.mark.usefixtures("mock_dynamo_db")
@@ -67,6 +68,6 @@ class TestListReports:
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
-        assert data == [
+        assert data["reports"] == [
             {"station": station_fixture, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
         ]

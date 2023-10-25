@@ -1,13 +1,37 @@
+import os
 import json
 
 from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.validation import validator
+import boto3
 
 try:
     from schema import OUTPUT_SCHEMA
 except ModuleNotFoundError:
     from src.report_counts.schema import OUTPUT_SCHEMA
+
+
+def get_dynamodb_resource(t_name: str):
+    t_name = t_name.lower()
+    if "local" in t_name:
+        return boto3.resource('dynamodb', endpoint_url="http://dynamo-local:8000")
+    else:
+        return boto3.resource('dynamodb')
+
+
+table_name = os.environ["DYNAMODB_TABLE_NAME"]
+dynamodb_resource = get_dynamodb_resource(table_name)
+table = dynamodb_resource.Table(table_name)
+
+
+def respond(status_code: int, body: list | dict | str) -> dict:
+    """ A response in the format that API Gateway expects.
+    """
+    return {
+        "statusCode": status_code,
+        "body": json.dumps(body)
+    }
 
 
 @validator(outbound_schema=OUTPUT_SCHEMA)
@@ -26,6 +50,15 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
     ------
     API Gateway Lambda Proxy Output Format: dict
     """
+    path_params = event.get("pathParameters")
+    station = ""
+    if path_params is not None:
+        station: str = path_params.get("station", "")
+
+    if not path_params or not station:
+        print("Failed to get station path parameter")
+        return respond(400, {"message": "Need to pass a station"})
+
     return {
         "statusCode": 200,
         "body": json.dumps({
