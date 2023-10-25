@@ -15,7 +15,14 @@ class APIClient:
     def __init__(self, api_host: Literal["aws", "localhost"]):
         self.api_host = api_host
         self.api_gateway_url = self.get_api_gateway_url()
+
+        self.token_file_path = self.get_token_file_path()
         self.auth_token, self.expiration = self.get_auth_token()
+
+    @staticmethod
+    def get_token_file_path() -> str:
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(this_dir, "token.pickle")
 
     def get_api_gateway_url(self) -> str:
         """ Get the API URL. The API can be running locally or on AWS
@@ -32,8 +39,7 @@ class APIClient:
         if self.api_host == "aws":
 
             if os.path.exists("token.pickle"):
-                # TODO: make token path absolute
-                with open("token.pickle", "rb") as fp:
+                with open(self.token_file_path, "rb") as fp:
                     token, expiration = pickle.load(fp)
 
                 if expiration < time.time() - 5:
@@ -63,7 +69,7 @@ class APIClient:
             print("Successfully authenticated with Cognito")
             expiration = time.time() + expiration
 
-            with open("token.pickle", "wb") as fp:
+            with open(self.token_file_path, "wb") as fp:
                 pickle.dump((id_token, expiration), fp)
                 print("Saved token to file")
 
@@ -110,20 +116,20 @@ class APIClient:
 
     def station_reports(self, station: str) -> requests.Response:
         url = f"{self.api_gateway_url}/reports/{station}"
-        response = requests.get(url)
+        response = self._get_request(url)
         return response
 
     def station_last_report(self, station: str) -> requests.Response:
         url = f"{self.api_gateway_url}/last_reports/{station}"
-        response = requests.get(url)
+        response = self._get_request(url)
         return response
 
     def last_reports(self) -> requests.Response:
         url = f"{self.api_gateway_url}/last_reports"
-        response = requests.get(url)
+        response = self._get_request(url)
         return response
 
     def station_reports_count(self, station: str) -> requests.Response:
         url = f"{self.api_gateway_url}/reports/{station}/count"
-        response = requests.get(url)
+        response = self._get_request(url)
         return response
