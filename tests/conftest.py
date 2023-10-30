@@ -3,8 +3,8 @@ from moto import mock_dynamodb
 import pytest
 import os
 
-from tests.fill_table import fill_table
-from tests.unit.table import TABLE_NAME
+from tests.fill_table import fill_tables, create_reports_table
+from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 
 @pytest.fixture
@@ -18,37 +18,19 @@ def mock_dynamo_db(station_fixture: str) -> None:
 
         All tests using this fixture will have DynamoDB mocked.
     """
-    os.environ["DYNAMODB_TABLE_NAME"] = TABLE_NAME
+    os.environ["DYNAMODB_TABLE_NAME"] = REPORTS_TABLE_NAME
+    os.environ["LAST_REPORTS_TABLE"] = LAST_REPORTS_TABLE_NAME
 
     with mock_dynamodb():
         mock_dynamo = boto3.resource("dynamodb")
-        table = mock_dynamo.create_table(
-            TableName=TABLE_NAME,
-            KeySchema=[
-                {
-                    "AttributeName": "station",
-                    "KeyType": "HASH"
-                },
-                {
-                    "AttributeName": "date",
-                    "KeyType": "RANGE"
-                }
-            ],
-            AttributeDefinitions=[
-                {
-                    "AttributeName": "station",
-                    "AttributeType": "S"
-                },
-                {
-                    "AttributeName": "date",
-                    "AttributeType": "S"
-                }
-            ],
-            BillingMode='PAY_PER_REQUEST',
-        )
-        fill_table(table, station_fixture)
+        reports_table = create_reports_table(mock_dynamo, REPORTS_TABLE_NAME)
+        last_reports_table = create_reports_table(mock_dynamo, LAST_REPORTS_TABLE_NAME)
+
+        fill_tables(reports_table, last_reports_table, station_fixture)
 
         yield
 
-        table.delete()
+        reports_table.delete()
+        last_reports_table.delete()
         del os.environ["DYNAMODB_TABLE_NAME"]
+        del os.environ["LAST_REPORTS_TABLE"]

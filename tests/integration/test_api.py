@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import pytest
 import requests
 
-from tests.fill_table import fill_table
+from tests.fill_table import fill_tables, create_reports_table
 from tests.integration.client import APIClient
 from tests.integration.env import get_env_var
 
@@ -32,8 +32,8 @@ class TestApiGateway:
         return host
 
     @staticmethod
-    def get_aws_dynamo_db_table() -> str:
-        """ Get the DynamoDB table name from AWS
+    def get_aws_dynamo_db_table() -> list[str]:
+        """ Get the DynamoDB table names from AWS
         """
         ddb = boto3.client("dynamodb")
         response = ddb.list_tables()
@@ -57,80 +57,80 @@ class TestApiGateway:
                 continue
         pytest.fail("Could not connect to API")
 
-    def _dynamo_db_table(self):
-        if self.api_host == "localhost":
-            ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
-            table_name = "VoltageReportsTableLocal"
-            table = ddb_resource.Table(table_name)
-
-        else:
-            ddb_resource = boto3.resource("dynamodb")
-            table_name = self.get_aws_dynamo_db_table()
-            table = ddb_resource.Table(table_name)
-
-        print(f"Table {table_name}")
+    def create_table_if_not_exist(self, ddb_resource, table_name: str):
+        """ Create a DynamoDB table if it does not exist.
+        """
+        table = ddb_resource.Table(table_name)
 
         try:
             table.item_count
         except ClientError as err:
             err_name = err.response["Error"]["Code"]
             if err_name == "ResourceNotFoundException" and self.api_host == "localhost":
-                ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
-                table = ddb_resource.create_table(
-                    TableName="VoltageReportsTableLocal",
-                    KeySchema=[
-                        {
-                            "AttributeName": "station",
-                            "KeyType": "HASH"
-                        },
-                        {
-                            "AttributeName": "date",
-                            "KeyType": "RANGE"
-                        }
-                    ],
-                    AttributeDefinitions=[
-                        {
-                            "AttributeName": "station",
-                            "AttributeType": "S"
-                        },
-                        {
-                            "AttributeName": "date",
-                            "AttributeType": "S"
-                        }
-                    ],
-                    BillingMode='PAY_PER_REQUEST',
-                )
+                return create_reports_table(ddb_resource, table_name)
             else:
                 raise ValueError("An error occurred with DynamoDB table")
 
         return table
 
+    def _dynamo_db_tables(self):
+        """ Get the reports and last reports tables. """
+        if self.api_host == "localhost":
+            ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
+            reports_tn = "VoltageReportsTableLocal"
+            last_reports_tn = "VoltageLastReportsLocal"
+            reports_table = self.create_table_if_not_exist(ddb_resource, reports_tn)
+            last_table = self.create_table_if_not_exist(ddb_resource, last_reports_tn)
+
+        else:
+            ddb_resource = boto3.resource("dynamodb")
+            reports_tn, last_reports_tn = self.get_aws_dynamo_db_table()
+            reports_table = ddb_resource.Table(reports_tn)
+            last_table = ddb_resource.Table(last_reports_tn)
+
+        print(f"Reports table name {reports_tn}")
+        print(f"Last reports table name {last_reports_tn}")
+
+        return reports_table, last_table
+
     @pytest.fixture()
     def dynamo_db(self) -> None:
         """ Put sample test data in dynamo db and erase it after the tests end.
         """
-        table = self._dynamo_db_table()
-        num_items = table.item_count
+        reports_table, last_table = self._dynamo_db_tables()
+        report_count = reports_table.item_count
+        last_count = last_table.item_count
 
-        reports = fill_table(table, self.station)
-        print(f"Items in table {table.item_count}")
+        reports = fill_tables(reports_table, last_table, self.station)
+        print(f"Items in reports table {reports_table.item_count}")
+        print(f"Items in last reports table {last_table.item_count}")
 
         yield
 
-        for rep in reports:
-            table.delete_item(Key={
+        for ii, rep in enumerate(reports):
+            reports_table.delete_item(Key={
                 "station": rep["station"],
                 "date": rep["date"]
             })
+            if ii > 0:
+                last_table.delete_item(Key={
+                    "station": rep["station"],
+                    "date": rep["date"]
+                })
 
-        assert table.item_count == num_items
+        assert reports_table.item_count == report_count
+        assert last_table.item_count == last_count
 
     @pytest.fixture
     def clean_up_db(self):
         yield
         date = datetime(2023, 2, 22, 16, 20, 0).isoformat()
-        table = self._dynamo_db_table()
-        table.delete_item(Key={
+        reports_t, last_reports_t = self._dynamo_db_tables()
+        reports_t.delete_item(Key={
+            "station": "caracol",
+            "date": date
+        })
+        last_reports_t.delete_item(Key={
             "station": "caracol",
             "date": date
         })
@@ -142,8 +142,6 @@ class TestApiGateway:
         """
         response = self.client.station_reports(self.station)
         assert response.status_code == 200
-        # TODO: reports should be sorted in descending order
-        # TODO: consider pagination
         assert response.json() == {
             "reports": [
                 {"station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},

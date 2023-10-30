@@ -7,10 +7,10 @@ import pytest
 
 from .event import generate_event
 from src.last_report.schema import OUTPUT_SCHEMA
-from tests.unit.table import TABLE_NAME
+from tests.unit.table import LAST_REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
-os.environ["DYNAMODB_TABLE_NAME"] = TABLE_NAME
+os.environ["LAST_REPORTS_TABLE"] = LAST_REPORTS_TABLE_NAME
 
 
 class TestListReports:
@@ -27,23 +27,41 @@ class TestListReports:
         from src.last_report.last_report import lambda_handler
         return lambda_handler
 
+    @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_last_report_happy_path(self, station_fixture):
+        station = station_fixture
+
         handler = self.get_handler()
-        event = generate_event({"station": station_fixture})
+        event = generate_event({"station": station})
         lambda_output = handler(event, "")
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
-        assert data == {"date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0}
+        assert data == {
+           "station": station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0
+        }
 
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_station_not_found(self):
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
+
         lambda_output = handler(event, "")
+        data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 404
-        assert lambda_output["body"]["message"] == "Station 'Caracol' not found"
+        assert data["message"] == "Station 'Caracol' not found"
+
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_no_station_passed(self):
+        handler = self.get_handler()
+        event = generate_event()
+
+        lambda_output = handler(event, "")
+        data = json.loads(lambda_output["body"])
+
+        assert lambda_output["statusCode"] == 400
+        assert data["message"] == "Need to pass a station"
 
 
 def test_schema_validation():
