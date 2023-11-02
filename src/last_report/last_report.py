@@ -69,6 +69,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
         print(f"Did not find last report for station {station}")
         return respond(404, {"message": f"Station '{station}' not found"})
 
+    print("Reports", reports)
     last_report = reports[0]
     last_report["battery"] = float(last_report["battery"])
     last_report["panel"] = float(last_report["panel"])

@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import pickle
 from typing import Literal, Optional
@@ -15,9 +16,9 @@ class APIClient:
     def __init__(self, api_host: Literal["aws", "localhost"]):
         self.api_host = api_host
         self.api_gateway_url = self.get_api_gateway_url()
-
         self.token_file_path = self.get_token_file_path()
-        self.auth_token, self.expiration = self.get_auth_token()
+        self.auth_token = ""
+        self.expiration = None
 
     @staticmethod
     def get_token_file_path() -> str:
@@ -34,17 +35,18 @@ class APIClient:
             region = "us-east-2"
             return f"https://{api_id}.execute-api.{region}.amazonaws.com/Prod"
 
-    def get_auth_token(self) -> tuple[str, Optional[int]]:
+    def get_auth_token(self):
         """ Get a token to authenticate to API Gateway. """
         if self.api_host == "aws":
-
-            if os.path.exists("token.pickle"):
+            if os.path.exists(self.token_file_path):
                 with open(self.token_file_path, "rb") as fp:
                     token, expiration = pickle.load(fp)
+                    print(f"Found token file. Expiration is {datetime.fromtimestamp(expiration)}")
 
-                if expiration < time.time() - 5:
-                    print("Loading token from file")
-                    return token, expiration
+                if expiration > time.time():
+                    self.auth_token = token
+                    self.expiration = expiration
+                    return
 
             user = get_env_var("COGNITO_USER")
             password = get_env_var("COGNITO_PASSWORD")
@@ -73,10 +75,8 @@ class APIClient:
                 pickle.dump((id_token, expiration), fp)
                 print("Saved token to file")
 
-            return id_token, expiration
-
-        else:
-            return "", None
+            self.auth_token = id_token
+            self.expiration = expiration
 
     def new_station_report(self, station: str, date: str, battery: float, panel: float) -> requests.Response:
         url = f"{self.api_gateway_url}/reports"
@@ -88,9 +88,6 @@ class APIClient:
                 "battery": battery,
                 "panel": panel,
             })
-
-        if self.expiration >= time.time() - 10:
-            self.auth_token, self.expiration = self.get_auth_token()
 
         headers = {"Authorization": self.auth_token}
         return requests.post(
@@ -107,9 +104,6 @@ class APIClient:
     def _get_request(self, url: str) -> requests.Response:
         if not self.auth_token:
             return requests.get(url)
-
-        if self.expiration >= time.time() - 10:
-            self.auth_token, self.expiration = self.get_auth_token()
 
         headers = {"Authorization": self.auth_token}
         return requests.get(url, headers=headers)

@@ -1,4 +1,27 @@
 from decimal import Decimal
+from typing import Literal
+
+from botocore.exceptions import ClientError
+
+
+def create_table_if_not_exist(
+        ddb_resource,
+        table_name: str,
+        api_host: Literal["aws", "localhost"]
+):
+    """ Create a DynamoDB table if it does not exist.
+    """
+    table = ddb_resource.Table(table_name)
+    try:
+        table.item_count
+    except ClientError as err:
+        err_name = err.response["Error"]["Code"]
+        if err_name == "ResourceNotFoundException" and api_host == "localhost":
+            return create_reports_table(ddb_resource, table_name)
+        else:
+            raise ValueError("An error occurred with DynamoDB table")
+
+    return table
 
 
 def create_reports_table(ddb_resource, table_name: str):

@@ -55,5 +55,5 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
     for rep in reports:
         rep["battery"] = float(rep["battery"])
         rep["panel"] = float(rep["panel"])
-
+    print("Reports", reports)
     return respond(200, {"reports": reports})

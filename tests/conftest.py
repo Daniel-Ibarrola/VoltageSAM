@@ -3,7 +3,7 @@ from moto import mock_dynamodb
 import pytest
 import os
 
-from tests.fill_table import fill_tables, create_reports_table
+from tests.ddb_table import fill_tables, create_reports_table
 from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 

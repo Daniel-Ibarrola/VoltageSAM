@@ -71,6 +71,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
         print(f"Did not find reports for station {station}")
         return respond(404, {"message": f"Station '{station}' not found"})
 
+    print("Reports", reports)
     counts = {}
     for rep in reports:
         date = datetime.datetime.fromisoformat(rep["date"]).date()

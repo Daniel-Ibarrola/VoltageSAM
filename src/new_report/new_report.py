@@ -54,17 +54,17 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
     """
     reports_tb = dynamodb_resource.Table(reports_tb_name)
     last_reports_tb = dynamodb_resource.Table(last_reports_tb_name)
-    print(f"Reports table {reports_tb_name}")
-    print(f"Last Reports table {last_reports_tb_name}")
 
     body_str = event.get("body", "")
     if not body_str:
+        print("Failed to add new report. Event did not contain body")
         return respond(
             400, {"message": "Need to pass the body with the new report parameters"})
 
     body: dict = json.loads(body_str)
     if "station" not in body or "date" not in body \
             or "panel" not in body or "battery" not in body:
+        print(f"Failed to add new report. Incomplete event body {body}")
         return respond(
             400, {"message": "The new report must include station, date, report and panel attributes"})
 
@@ -79,6 +79,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
         }
     )
     # put_item updates an item if it already exists
+    # TODO: we are not updating the item.
     last_reports_tb.put_item(
         Item={
             "station": station,

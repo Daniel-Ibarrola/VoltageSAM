@@ -29,7 +29,6 @@ Resources:
             VoltageAuthorizer:
               UserPoolArn: !GetAtt VoltageUserPool.Arn
 
-
   AddNewReport:
     Type: AWS::Serverless::Function
     Properties:
@@ -45,8 +44,10 @@ Resources:
             Path: /reports
             Method: POST
       Policies:
-        - DynamoDBCrudPolicy:
+        - DynamoDBWritePolicy:
             TableName: !Ref ReportsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LastReportsTable
 
   ListLastReports:
     Type: AWS::Serverless::Function
@@ -63,8 +64,8 @@ Resources:
             Path: /last_reports
             Method: GET
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ReportsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref LastReportsTable
 
   ListStationReports:
     Type: AWS::Serverless::Function
@@ -81,7 +82,7 @@ Resources:
             Path: /reports/{station}
             Method: GET
       Policies:
-        - DynamoDBCrudPolicy:
+        - DynamoDBReadPolicy:
             TableName: !Ref ReportsTable
 
   StationLastReport:
@@ -99,8 +100,8 @@ Resources:
             Path: /last_reports/{station}
             Method: GET
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ReportsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref LastReportsTable
 
   StationReportCounts:
     Type: AWS::Serverless::Function
@@ -117,7 +118,7 @@ Resources:
             Path: /reports/{station}/count
             Method: GET
       Policies:
-        - DynamoDBCrudPolicy:
+        - DynamoDBReadPolicy:
             TableName: !Ref ReportsTable
 
   ReportsTable:
