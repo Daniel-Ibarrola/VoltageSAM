@@ -29,14 +29,8 @@ def dynamo_db_tables(api_host) -> tuple:
     """ Get the DynamoDB tables
     """
     if api_host == "aws":
-        ddb = boto3.client("dynamodb")
-        response = ddb.list_tables()
-        table_names = [tb for tb in response["TableNames"] if "voltage" in tb.lower()]
-
-        if not table_names:
-            raise ValueError(f"Cannot find DynamoDB table")
-        reports_tn, last_reports_tn = table_names
-
+        reports_tn = "VoltageReportsTable"
+        last_reports_tn = "VoltageLastReportsTable"
         ddb_resource = boto3.resource("dynamodb")
         reports_table = create_table_if_not_exist(ddb_resource, reports_tn, api_host)
         last_table = create_table_if_not_exist(ddb_resource, last_reports_tn, api_host)
