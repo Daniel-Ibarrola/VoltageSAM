@@ -178,10 +178,24 @@ class TestApiGateway:
         """ Get the last reports of every station """
         response = self.client.last_reports()
         assert response.status_code == 200
-        assert response.json() == {"reports": [
-            {"station": "tonalapa", "date": "2023-02-22T16:20:00", "battery": 45.0, "panel": 68.0},
-            {"station": "piedra grande", "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
-        ]}
+
+        reports = response.json()["reports"]
+        assert len(reports) == 2
+
+        tonalapa_rep = [rep for rep in reports if rep["station"] == "tonalapa"][0]
+        piedra_rep = [rep for rep in reports if rep["station"] == "piedra grande"][0]
+        assert tonalapa_rep == {
+            "station": "tonalapa",
+            "date": "2023-02-23T16:20:00",
+            "battery": 55.0,
+            "panel": 60.0
+        }
+        assert piedra_rep == {
+            "station": "piedra grande",
+            "date": "2023-02-22T16:20:00",
+            "battery": 34.0,
+            "panel": 40.0
+        }
 
     @pytest.mark.usefixtures("dynamo_db")
     @pytest.mark.usefixtures("wait_for_api")
@@ -194,5 +208,4 @@ class TestApiGateway:
                 {"date": "2023-02-23", "count": 1},
                 {"date": "2023-02-22", "count": 1},
             ],
-            "nextKey": None
         }

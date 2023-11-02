@@ -54,6 +54,8 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
     """
     reports_tb = dynamodb_resource.Table(reports_tb_name)
     last_reports_tb = dynamodb_resource.Table(last_reports_tb_name)
+    print(f"Reports table {reports_tb_name}")
+    print(f"Last Reports table {last_reports_tb_name}")
 
     body_str = event.get("body", "")
     if not body_str:

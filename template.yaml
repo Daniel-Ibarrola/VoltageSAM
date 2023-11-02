@@ -11,6 +11,7 @@ Globals:
     Timeout: 3
     Environment:
       Variables:
+        # TODO: change DYNAMODB_TABLE_NAME to REPORTS_TABLE
         DYNAMODB_TABLE_NAME: VoltageReportsTable
         LAST_REPORTS_TABLE: VoltageLastReportsTable
         REGION_NAME: !Ref AWS::Region
