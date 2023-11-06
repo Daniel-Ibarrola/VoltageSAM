@@ -185,6 +185,14 @@ To delete the sample application that you created, use the AWS CLI. Assuming you
 sam delete --stack-name "voltage-api"
 ```
 
+## CI/CD
+
+Launch code pipeline
+
+```shell
+sam deploy -t codepipeline.yaml --stack-name voltage-pipeline --capabilities=CAPABILITY_IAM
+```
+
 ## Appendix
 
 ### DynamoDB commands
