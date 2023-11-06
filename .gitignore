@@ -242,3 +242,5 @@ $RECYCLE.BIN/
 
 /src/temp.py
 token.pickle
+
+samconfig.toml
