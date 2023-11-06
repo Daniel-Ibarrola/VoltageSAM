@@ -21,7 +21,7 @@ def get_dynamodb_resource(t_name: str):
         return boto3.resource('dynamodb')
 
 
-table_name = os.environ["DYNAMODB_TABLE_NAME"]
+table_name = os.environ["REPORTS_TABLE"]
 dynamodb_resource = get_dynamodb_resource(table_name)
 table = dynamodb_resource.Table(table_name)
 

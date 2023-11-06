@@ -11,8 +11,7 @@ Globals:
     Timeout: 3
     Environment:
       Variables:
-        # TODO: change DYNAMODB_TABLE_NAME to REPORTS_TABLE
-        DYNAMODB_TABLE_NAME: VoltageReportsTable
+        REPORTS_TABLE: VoltageReportsTable
         LAST_REPORTS_TABLE: VoltageLastReportsTable
         REGION_NAME: !Ref AWS::Region
 
@@ -146,13 +145,9 @@ Resources:
       AttributeDefinitions:
         - AttributeName: station
           AttributeType: S
-        - AttributeName: date
-          AttributeType: S
       KeySchema:
         - AttributeName: station
           KeyType: HASH
-        - AttributeName: date
-          KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2

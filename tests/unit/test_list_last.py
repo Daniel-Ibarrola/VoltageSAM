@@ -7,7 +7,7 @@ from moto import mock_dynamodb
 import pytest
 
 from .event import generate_event
-from tests.fill_table import create_reports_table
+from tests.ddb_table import create_reports_table
 from tests.unit.table import LAST_REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error

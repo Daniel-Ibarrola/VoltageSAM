@@ -7,6 +7,7 @@ from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.validation import validator
 import boto3
+from boto3.dynamodb.conditions import Key
 
 try:
     from schema import OUTPUT_SCHEMA
@@ -22,7 +23,7 @@ def get_dynamodb_resource(t_name: str):
         return boto3.resource('dynamodb')
 
 
-reports_tb_name = os.environ["DYNAMODB_TABLE_NAME"]
+reports_tb_name = os.environ["REPORTS_TABLE"]
 last_reports_tb_name = os.environ["LAST_REPORTS_TABLE"]
 dynamodb_resource = get_dynamodb_resource(reports_tb_name)
 
@@ -70,25 +71,31 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
 
     date = datetime.strptime(body["date"], "%Y/%m/%d,%H:%M:%S").isoformat()
     station = body["station"].lower()
+    battery = Decimal(body["battery"])
+    panel = Decimal(body["panel"])
+
     reports_tb.put_item(
         Item={
             "station": station,
             "date": date,
-            "battery": Decimal(body["battery"]),
-            "panel": Decimal(body["panel"])
+            "battery": battery,
+            "panel": panel
         }
     )
-    # put_item updates an item if it already exists
-    # TODO: we are not updating the item.
-    last_reports_tb.put_item(
-        Item={
-            "station": station,
-            "date": date,
-            "battery": Decimal(body["battery"]),
-            "panel": Decimal(body["panel"])
+    last_reports_tb.update_item(
+        Key={"station": station},
+        UpdateExpression="SET #date=:newDate, #battery =:newBattery, #panel =:newPanel",
+        ExpressionAttributeValues={
+            ":newDate": date,
+            ":newBattery": battery,
+            ":newPanel": panel
+        },
+        ExpressionAttributeNames={
+            "#date": "date",
+            "#battery": "battery",
+            "#panel": "panel"
         }
     )
-
     res_body = {
         "station": station,
         "date": date,

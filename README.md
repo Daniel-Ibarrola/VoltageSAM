@@ -184,3 +184,19 @@ To delete the sample application that you created, use the AWS CLI. Assuming you
 ```bash
 sam delete --stack-name "voltage-api"
 ```
+
+## Appendix
+
+### DynamoDB commands
+
+To use the following commands with dynamo db local add `--endpoint-url http://localhost:8000` to each command.
+
+- List tables
+```shell
+aws dyanamodb list-tables
+```
+
+- Scan table
+```shell
+aws dynamodb scan --table-name <TableName>
+```

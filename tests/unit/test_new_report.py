@@ -11,11 +11,11 @@ from .event import generate_event
 from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
-os.environ["DYNAMODB_TABLE_NAME"] = REPORTS_TABLE_NAME
+os.environ["REPORTS_TABLE"] = REPORTS_TABLE_NAME
 os.environ["LAST_REPORTS_TABLE"] = LAST_REPORTS_TABLE_NAME
 
 
-class TestListReports:
+class TestAddNewReport:
     """ Class for unit testing the lambda function that returns the
         reports of a station.
     """
@@ -40,7 +40,7 @@ class TestListReports:
         assert report["date"] == date
 
     @pytest.mark.usefixtures("mock_dynamo_db")
-    def test_station_reports_happy_path(self):
+    def test_add_new_report_happy_path(self):
         station = "Caracol"
         date = datetime(2023, 2, 22, 16, 20, 0)
         date_str = date.strftime("%Y/%m/%d,%H:%M:%S")
@@ -61,6 +61,40 @@ class TestListReports:
 
         self.check_report(reports_tb, station, date_iso)
         self.check_report(last_reports_tb, station, date_iso)
+
+    @pytest.mark.usefixtures("mock_dynamo_db")
+    def test_last_reports_are_updated(self):
+        date1 = datetime(2023, 2, 22, 16, 20, 0)
+        date2 = datetime(2023, 3, 22, 16, 20, 0)
+        date1_str = date1.strftime("%Y/%m/%d,%H:%M:%S")
+        date2_str = date2.strftime("%Y/%m/%d,%H:%M:%S")
+        station = "Caracol"
+
+        event1 = generate_event(body={"station": station, "date": date1_str, "battery": 20.0, "panel": 15.5})
+        event2 = generate_event(body={"station": station, "date": date2_str, "battery": 50.0, "panel": 30.0})
+
+        handler = self.get_handler()
+        output1 = handler(event1, "")
+        output2 = handler(event2, "")
+
+        assert output1["statusCode"] == 201
+        assert output2["statusCode"] == 201
+
+        ddb_resource = boto3.resource("dynamodb")
+        reports_tb = ddb_resource.Table(REPORTS_TABLE_NAME)
+        last_reports_tb = ddb_resource.Table(LAST_REPORTS_TABLE_NAME)
+
+        ddb_res = reports_tb.query(KeyConditionExpression=Key("station").eq(station.lower()))
+        assert len(ddb_res["Items"]) == 2
+
+        ddb_res = last_reports_tb.query(KeyConditionExpression=Key("station").eq(station.lower()))
+        items = ddb_res["Items"]
+        assert len(items) == 1
+        report = items[0]
+
+        assert report == {
+            "station": station.lower(), "date": date2.isoformat(), "battery": 50.0, "panel": 30.0
+        }
 
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_event_with_no_body(self):

@@ -25,30 +25,48 @@ def create_table_if_not_exist(
 
 
 def create_reports_table(ddb_resource, table_name: str):
-    return ddb_resource.create_table(
-        TableName=table_name,
-        KeySchema=[
-            {
-                "AttributeName": "station",
-                "KeyType": "HASH"
-            },
-            {
-                "AttributeName": "date",
-                "KeyType": "RANGE"
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                "AttributeName": "station",
-                "AttributeType": "S"
-            },
-            {
-                "AttributeName": "date",
-                "AttributeType": "S"
-            }
-        ],
-        BillingMode='PAY_PER_REQUEST',
-    )
+    if "last" not in table_name.lower():
+        return ddb_resource.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {
+                    "AttributeName": "station",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "date",
+                    "KeyType": "RANGE"
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    "AttributeName": "station",
+                    "AttributeType": "S"
+                },
+                {
+                    "AttributeName": "date",
+                    "AttributeType": "S"
+                }
+            ],
+            BillingMode='PAY_PER_REQUEST',
+        )
+    else:
+        return ddb_resource.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {
+                    "AttributeName": "station",
+                    "KeyType": "HASH"
+                },
+            ],
+            AttributeDefinitions=[
+                {
+                    "AttributeName": "station",
+                    "AttributeType": "S"
+                },
+            ],
+            BillingMode='PAY_PER_REQUEST',
+        )
 
 
 def fill_tables(reports_table, last_reports_table, station: str) -> list[dict]:

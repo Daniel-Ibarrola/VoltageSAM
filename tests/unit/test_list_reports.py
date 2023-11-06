@@ -8,7 +8,7 @@ from .event import generate_event
 from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
-os.environ["DYNAMODB_TABLE_NAME"] = REPORTS_TABLE_NAME
+os.environ["REPORTS_TABLE"] = REPORTS_TABLE_NAME
 os.environ["LAST_REPORTS_TABLE"] = LAST_REPORTS_TABLE_NAME
 
 

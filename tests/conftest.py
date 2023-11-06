@@ -18,7 +18,7 @@ def mock_dynamo_db(station_fixture: str) -> None:
 
         All tests using this fixture will have DynamoDB mocked.
     """
-    os.environ["DYNAMODB_TABLE_NAME"] = REPORTS_TABLE_NAME
+    os.environ["REPORTS_TABLE"] = REPORTS_TABLE_NAME
     os.environ["LAST_REPORTS_TABLE"] = LAST_REPORTS_TABLE_NAME
 
     with mock_dynamodb():
@@ -32,5 +32,5 @@ def mock_dynamo_db(station_fixture: str) -> None:
 
         reports_table.delete()
         last_reports_table.delete()
-        del os.environ["DYNAMODB_TABLE_NAME"]
+        del os.environ["REPORTS_TABLE"]
         del os.environ["LAST_REPORTS_TABLE"]
