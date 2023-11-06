@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
 import pickle
-from typing import Literal, Optional
+from typing import Literal
 import time
 
 import boto3
