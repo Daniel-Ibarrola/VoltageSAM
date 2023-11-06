@@ -11,8 +11,8 @@ Globals:
     Timeout: 3
     Environment:
       Variables:
-        REPORTS_TABLE: VoltageReportsTable
-        LAST_REPORTS_TABLE: VoltageLastReportsTable
+        REPORTS_TABLE: !Ref ReportsTable
+        LAST_REPORTS_TABLE: !Ref LastReportsTable
         REGION_NAME: !Ref AWS::Region
 
 
@@ -123,7 +123,6 @@ Resources:
   ReportsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: VoltageReportsTable
       AttributeDefinitions:
         - AttributeName: station
           AttributeType: S
@@ -141,7 +140,6 @@ Resources:
   LastReportsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: VoltageLastReportsTable
       AttributeDefinitions:
         - AttributeName: station
           AttributeType: S

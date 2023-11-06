@@ -201,7 +201,7 @@ To use the following commands with dynamo db local add `--endpoint-url http://lo
 
 - List tables
 ```shell
-aws dyanamodb list-tables
+aws dynamodb list-tables
 ```
 
 - Scan table
