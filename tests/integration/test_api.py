@@ -30,6 +30,7 @@ def dynamo_db_tables(api_host) -> tuple:
     """ Get the DynamoDB tables
     """
     if api_host == "aws":
+        # TODO: update table names
         reports_tn = "VoltageReportsTable"
         last_reports_tn = "VoltageLastReportsTable"
         ddb_resource = boto3.resource("dynamodb")
@@ -100,7 +101,6 @@ class TestGetStationReports(TestApiGateway):
     def test_get_station_reports_happy_path(self):
         """ Get the reports of a station.
         """
-        # TODO: pass start and end date
         response = self.client.station_reports(self.station)
         assert response.status_code == 200
         assert response.json() == {
