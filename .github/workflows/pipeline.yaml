@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - 'main'
-  pull_request:
+      - 'feature**'
+  delete:
     branches:
-      - 'main'
+      - 'feature**'
+
 
 env:
   SAM_TEMPLATE: template.yaml
@@ -36,6 +38,7 @@ permissions:
 jobs:
 
   test:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -117,6 +120,7 @@ jobs:
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
   build-and-package:
+    if: github.ref == 'refs/heads/main'
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -174,6 +178,7 @@ jobs:
           path: packaged-prod.yaml
 
   deploy-testing:
+    if: github.ref == 'refs/heads/main'
     needs: [build-and-package]
     runs-on: ubuntu-latest
     steps:
@@ -205,6 +210,7 @@ jobs:
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
   integration-test:
+    if: github.ref == 'refs/heads/main'
     needs: [deploy-testing]
     runs-on: ubuntu-latest
     steps:
@@ -257,6 +263,7 @@ jobs:
           name: packaged-prod.yaml
 
       - name: Assume the prod pipeline user role
+        # TODO: update action version
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-region: ${{ env.PROD_REGION }}
