@@ -38,8 +38,6 @@ jobs:
   test:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    env:
-      AWS_DEFAULT_REGION: $TESTING_REGION
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python 3.11
@@ -53,6 +51,8 @@ jobs:
            pip install -r requirements/dev.txt
 
       - name: Unit test with pytest
+        env:
+          AWS_DEFAULT_REGION: ${{ env.TESTING_REGION }}
         run: |
           pytest tests/unit
 
