@@ -25,18 +25,31 @@ def api_host() -> Literal["localhost", "aws"]:
     return host
 
 
+def wait_for(url: str, name: str) -> None:
+    """ Try to connect to the given url for 5 seconds.
+    """
+    start = time.time()
+    while time.time() - start < 5:
+        try:
+            requests.get(url)
+            return
+        except requests.ConnectionError:
+            continue
+    pytest.fail(f"Could not connect to {name} at {url}")
+
+
 @pytest.fixture(scope="class")
 def dynamo_db_tables(api_host) -> tuple:
     """ Get the DynamoDB tables
     """
     if api_host == "aws":
-        # TODO: update table names
-        reports_tn = "VoltageReportsTable"
-        last_reports_tn = "VoltageLastReportsTable"
+        reports_tn = "voltage-dev-ReportsTable-YFR5XT9RWVJQ"
+        last_reports_tn = "voltage-dev-LastReportsTable-H1EEWTXUI42"
         ddb_resource = boto3.resource("dynamodb")
         reports_table = ddb_resource.Table(reports_tn)
         last_table = ddb_resource.Table(last_reports_tn)
     else:
+        wait_for("http://localhost:8000", "Local DynamoDB")
         reports_tn = "VoltageReportsTableLocal"
         last_reports_tn = "VoltageLastReportsLocal"
         ddb_resource = boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
@@ -54,19 +67,12 @@ class TestApiGateway:
         self.client = APIClient(api_host)
         self.client.get_auth_token()
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def wait_for_api(self):
         """ Try to connect to the API. If it is not possible after 10 seconds
             stop the tests.
         """
-        start = time.time()
-        while time.time() - start < 10:
-            try:
-                requests.get(self.client.api_gateway_url)
-                return
-            except requests.ConnectionError:
-                continue
-        pytest.fail("Could not connect to API")
+        wait_for(self.client.api_gateway_url, f"API")
 
     @pytest.fixture()
     def dynamo_db(self, dynamo_db_tables) -> None:
@@ -97,7 +103,6 @@ class TestApiGateway:
 class TestGetStationReports(TestApiGateway):
 
     @pytest.mark.usefixtures("dynamo_db")
-    @pytest.mark.usefixtures("wait_for_api")
     def test_get_station_reports_happy_path(self):
         """ Get the reports of a station.
         """
@@ -111,7 +116,6 @@ class TestGetStationReports(TestApiGateway):
             "nextKey": None
         }
 
-    @pytest.mark.usefixtures("wait_for_api")
     def test_station_not_found(self):
         response = self.client.station_reports("InvalidStation")
         assert response.status_code == 404
@@ -129,7 +133,6 @@ class TestAddNewReport(TestApiGateway):
         last_reports_t.delete_item(Key={"station": "caracol"})
 
     @pytest.mark.usefixtures("clean_up_db")
-    @pytest.mark.usefixtures("wait_for_api")
     def test_add_new_report_happy_path(self) -> None:
         """ Add a new report. """
         date = datetime(2023, 2, 22, 16, 20, 0)
@@ -151,7 +154,6 @@ class TestAddNewReport(TestApiGateway):
         reports_t.delete_item(Key={"station": "caracol", "date": date2.isoformat()})
         last_reports_t.delete_item(Key={"station": "caracol"})
 
-    @pytest.mark.usefixtures("wait_for_api")
     def test_last_reports_are_updated(self, clear_reports):
         date1 = datetime(2023, 2, 22, 16, 20, 0)
         date2 = datetime(2023, 3, 22, 16, 20, 0)
@@ -177,7 +179,6 @@ class TestAddNewReport(TestApiGateway):
 class TestGetStationLastReport(TestApiGateway):
 
     @pytest.mark.usefixtures("dynamo_db")
-    @pytest.mark.usefixtures("wait_for_api")
     def test_station_last_report_happy_path(self):
         """ Get the last report of a station. """
         response = self.client.station_last_report(self.station)
@@ -186,7 +187,6 @@ class TestGetStationLastReport(TestApiGateway):
             "station": self.station, "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0
         }
 
-    @pytest.mark.usefixtures("wait_for_api")
     def test_station_not_found(self):
         response = self.client.station_last_report("InvalidStation")
         assert response.status_code == 404
@@ -194,7 +194,6 @@ class TestGetStationLastReport(TestApiGateway):
 
 class TestGetStationLastReports(TestApiGateway):
     @pytest.mark.usefixtures("dynamo_db")
-    @pytest.mark.usefixtures("wait_for_api")
     def test_last_reports_happy_path(self):
         """ Get the last reports of every station """
         response = self.client.last_reports()
@@ -222,7 +221,6 @@ class TestGetStationLastReports(TestApiGateway):
 class TestGetStationReportCounts(TestApiGateway):
 
     @pytest.mark.usefixtures("dynamo_db")
-    @pytest.mark.usefixtures("wait_for_api")
     def test_get_station_reports_count_happy_path(self):
         """ Get the count of reports of a station. """
         response = self.client.station_reports_count(self.station)
@@ -234,7 +232,6 @@ class TestGetStationReportCounts(TestApiGateway):
             ],
         }
 
-    @pytest.mark.usefixtures("wait_for_api")
     def test_station_not_found(self):
         response = self.client.station_reports_count("InvalidStation")
         assert response.status_code == 404
