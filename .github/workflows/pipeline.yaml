@@ -5,6 +5,9 @@ on:
     branches:
       - 'main'
       - 'feature**'
+  pull_request:
+    branches:
+      - 'main'
   delete:
     branches:
       - 'feature**'
@@ -20,6 +23,7 @@ env:
   # testing "sam package" and "sam deploy" commands.
   # TESTING_IMAGE_REPOSITORY = '0123456789.dkr.ecr.region.amazonaws.com/repository-name'
   TESTING_REGION: us-east-2
+
   PROD_STACK_NAME: voltage-prod
   PROD_PIPELINE_EXECUTION_ROLE: arn:aws:iam::668144156539:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-2is8fEZz27v4
   PROD_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::668144156539:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-qqPSeGD2ukeo
@@ -209,9 +213,37 @@ jobs:
     needs: [deploy-testing]
     runs-on: ubuntu-latest
     steps:
+      - name: Assume the integration testing user role
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-region: ${{ env.TESTING_REGION }}
+          role-to-assume: arn:aws:iam::668144156539:role/voltage-dev-DynamoDBExecutionRole
+          role-session-name: integration-testing
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
       - uses: actions/checkout@v3
-      - run: |
-          # trigger the integration tests here
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Integration test with pytest
+        env:
+          AWS_DEFAULT_REGION: ${{ env.TESTING_REGION }}
+          API_HOST: aws
+          API_GATEWAY_ID: s9nodfgio1
+          COGNITO_USER: triton@example.com
+          COGNITO_PASSWORD: Dog123
+          COGNITO_CLIENT_ID: 7p065bgqja89b3pkpccnml3lt7
+        run: |
+          pytest tests/integration
+          
 
   deploy-prod:
     if: github.ref == 'refs/heads/main'
