@@ -4,13 +4,9 @@ on:
   push:
     branches:
       - 'main'
-      - 'feature**'
   pull_request:
     branches:
       - 'main'
-  delete:
-    branches:
-      - 'feature**'
 
 env:
   SAM_TEMPLATE: template.yaml
@@ -121,7 +117,6 @@ jobs:
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
   build-and-package:
-    if: github.ref == 'refs/heads/main'
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -155,6 +150,7 @@ jobs:
           path: packaged-testing.yaml
 
       - name: Assume the prod pipeline user role
+        if: github.ref == 'refs/heads/main'
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-region: ${{ env.PROD_REGION }}
@@ -164,6 +160,7 @@ jobs:
           role-skip-session-tagging: true
 
       - name: Upload artifacts to production artifact buckets
+        if: github.ref == 'refs/heads/main'
         run: |
           sam package \
             --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
@@ -171,12 +168,12 @@ jobs:
             --output-template-file packaged-prod.yaml
 
       - uses: actions/upload-artifact@v3
+        if: github.ref == 'refs/heads/main'
         with:
           name: packaged-prod.yaml
           path: packaged-prod.yaml
 
   deploy-testing:
-    if: github.ref == 'refs/heads/main'
     needs: [build-and-package]
     runs-on: ubuntu-latest
     steps:
@@ -208,7 +205,6 @@ jobs:
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
   integration-test:
-    if: github.ref == 'refs/heads/main'
     needs: [deploy-testing]
     runs-on: ubuntu-latest
     steps:
