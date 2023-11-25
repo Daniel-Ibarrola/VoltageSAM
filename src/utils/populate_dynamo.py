@@ -19,6 +19,7 @@ def get_tables():
 
 
 def add_data_to_dynamo(reports_table, last_reports_table) -> None:
+    print("Adding data to reports and last reports table...")
     for rep in REPORTS:
         reports_table.put_item(Item={
             "station": rep["station"],
@@ -35,6 +36,7 @@ def add_data_to_dynamo(reports_table, last_reports_table) -> None:
 
 
 def remove_data_from_dynamo(reports_table, last_reports_table) -> None:
+    print("Removing data to reports and last reports table...")
     for rep in REPORTS:
         reports_table.delete_item(Key={
             "station": rep["station"],
@@ -63,6 +65,8 @@ def main() -> None:
         add_data_to_dynamo(reports_table, last_reports_table)
     else:
         remove_data_from_dynamo(reports_table, last_reports_table)
+
+    print("DONE")
 
 
 if __name__ == "__main__":
