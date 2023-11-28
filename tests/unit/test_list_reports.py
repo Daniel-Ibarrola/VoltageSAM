@@ -4,7 +4,7 @@ from typing import Callable
 
 import pytest
 
-from .event import generate_event
+from .lambda_args import generate_event, get_context
 from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
@@ -30,7 +30,7 @@ class TestListReports:
         handler = self.get_handler()
         event = generate_event({"station": station_fixture})
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, get_context())
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
@@ -43,8 +43,9 @@ class TestListReports:
     def test_station_not_found(self):
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 404
@@ -54,7 +55,8 @@ class TestListReports:
     def test_no_station_passed(self):
         handler = self.get_handler()
         event = generate_event()
-        lambda_output = handler(event, "")
+        context = get_context()
+        lambda_output = handler(event, context)
         assert lambda_output["statusCode"] == 400
 
     @pytest.mark.usefixtures("mock_dynamo_db")
@@ -64,8 +66,9 @@ class TestListReports:
             path_params={"station": station_fixture},
             query_string_params={"start_date": "2023-02-23T00:00:00"}
         )
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200

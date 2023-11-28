@@ -7,7 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 import pytest
 
-from .event import generate_event
+from .lambda_args import generate_event, get_context
 from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
@@ -48,7 +48,8 @@ class TestAddNewReport:
 
         handler = self.get_handler()
         event = generate_event(body={"station": station, "date": date_str, "battery": 20.0, "panel": 15.5})
-        lambda_output = handler(event, "")
+        context = get_context()
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 201
@@ -72,10 +73,11 @@ class TestAddNewReport:
 
         event1 = generate_event(body={"station": station, "date": date1_str, "battery": 20.0, "panel": 15.5})
         event2 = generate_event(body={"station": station, "date": date2_str, "battery": 50.0, "panel": 30.0})
+        context = get_context()
 
         handler = self.get_handler()
-        output1 = handler(event1, "")
-        output2 = handler(event2, "")
+        output1 = handler(event1, context)
+        output2 = handler(event2, context)
 
         assert output1["statusCode"] == 201
         assert output2["statusCode"] == 201
@@ -100,8 +102,9 @@ class TestAddNewReport:
     def test_event_with_no_body(self):
         handler = self.get_handler()
         event = generate_event()
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 400
@@ -112,8 +115,9 @@ class TestAddNewReport:
         handler = self.get_handler()
         date = "2023-10-30T17:05:03"
         event = generate_event(body={"station": "tonalapa", "date": date})
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 400
