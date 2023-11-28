@@ -4,7 +4,7 @@ from typing import Callable
 
 import pytest
 
-from .event import generate_event
+from .lambda_args import generate_event, get_context
 from tests.unit.table import REPORTS_TABLE_NAME
 
 # Set the table name variable before importing lambda function to avoid raising an error
@@ -30,7 +30,7 @@ class TestReportCounts:
         handler = self.get_handler()
         event = generate_event({"station": station_fixture})
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, get_context())
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
@@ -44,7 +44,7 @@ class TestReportCounts:
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, get_context())
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 404

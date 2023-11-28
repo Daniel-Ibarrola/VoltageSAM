@@ -5,7 +5,7 @@ from typing import Callable
 from aws_lambda_powertools.utilities.validation import validate
 import pytest
 
-from .event import generate_event
+from .lambda_args import generate_event, get_context
 from src.last_report.schema import OUTPUT_SCHEMA
 from tests.unit.table import LAST_REPORTS_TABLE_NAME
 
@@ -33,7 +33,7 @@ class TestListReports:
 
         handler = self.get_handler()
         event = generate_event({"station": station})
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, get_context())
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
@@ -45,8 +45,9 @@ class TestListReports:
     def test_station_not_found(self):
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 404
@@ -56,8 +57,9 @@ class TestListReports:
     def test_no_station_passed(self):
         handler = self.get_handler()
         event = generate_event()
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 400

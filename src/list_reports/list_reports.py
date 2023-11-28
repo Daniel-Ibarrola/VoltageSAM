@@ -26,11 +26,26 @@ dynamodb_resource = get_dynamodb_resource(table_name)
 table = dynamodb_resource.Table(table_name)
 
 
-def respond(status_code: int, body: list | dict | str) -> dict:
+def get_cors_origin(lambda_fn_name: str) -> str:
+    if "prod" in lambda_fn_name:
+        return "https://api.voltage.cires-ac.mx"
+    else:
+        return "http://localhost:5173"
+
+
+def respond(
+        status_code: int, body: list | dict | str,
+        cors_origin: str = "http://localhost:5173"
+) -> dict:
     """ A response in the format that API Gateway expects.
     """
     return {
         "statusCode": status_code,
+        'headers': {
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Origin': cors_origin,
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+        },
         "body": json.dumps(body)
     }
 
@@ -51,6 +66,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
     ------
     dict
     """
+    cors_origin = get_cors_origin(context.function_name)
     path_params = event.get("pathParameters")
     station = ""
     if path_params is not None:
@@ -94,7 +110,11 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
     reports = ddb_res["Items"]
     if not reports:
         print(f"Did not find reports for station {station}")
-        return respond(404, {"message": f"Station '{station}' not found"})
+        return respond(
+            404,
+            {"message": f"Station '{station}' not found"},
+            cors_origin
+        )
     print("Reports", reports)
 
     for rep in reports:
@@ -106,4 +126,4 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
         next_key = ddb_res["LastEvaluatedKey"]
 
     response = {"reports": reports, "nextKey": next_key}
-    return respond(200, response)
+    return respond(200, response, cors_origin)

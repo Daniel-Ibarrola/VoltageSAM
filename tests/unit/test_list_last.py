@@ -6,7 +6,7 @@ import boto3
 from moto import mock_dynamodb
 import pytest
 
-from .event import generate_event
+from .lambda_args import generate_event, get_context
 from tests.ddb_table import create_reports_table
 from tests.unit.table import LAST_REPORTS_TABLE_NAME
 
@@ -32,8 +32,9 @@ class TestListReports:
     def test_last_reports_happy_path(self, station_fixture):
         handler = self.get_handler()
         event = generate_event({"station": station_fixture})
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200
@@ -54,8 +55,9 @@ class TestListReports:
     def test_no_reports(self, last_reports_table):
         handler = self.get_handler()
         event = generate_event({"station": "Caracol"})
+        context = get_context()
 
-        lambda_output = handler(event, "")
+        lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 200

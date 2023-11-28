@@ -7,7 +7,6 @@ from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.validation import validator
 import boto3
-from boto3.dynamodb.conditions import Key
 
 try:
     from schema import OUTPUT_SCHEMA
@@ -28,11 +27,26 @@ last_reports_tb_name = os.environ["LAST_REPORTS_TABLE"]
 dynamodb_resource = get_dynamodb_resource(reports_tb_name)
 
 
-def respond(status_code: int, body: list | dict | str) -> dict:
+def get_cors_origin(lambda_fn_name: str) -> str:
+    if "prod" in lambda_fn_name:
+        return "https://api.voltage.cires-ac.mx"
+    else:
+        return "http://localhost:5173"
+
+
+def respond(
+        status_code: int, body: list | dict | str,
+        cors_origin: str = "http://localhost:5173"
+) -> dict:
     """ A response in the format that API Gateway expects.
     """
     return {
         "statusCode": status_code,
+        'headers': {
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Origin': cors_origin,
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+        },
         "body": json.dumps(body)
     }
 
@@ -53,6 +67,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
         ------
         dict
     """
+    cors_origin = get_cors_origin(context.function_name)
     reports_tb = dynamodb_resource.Table(reports_tb_name)
     last_reports_tb = dynamodb_resource.Table(last_reports_tb_name)
 
@@ -67,7 +82,10 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
             or "panel" not in body or "battery" not in body:
         print(f"Failed to add new report. Incomplete event body {body}")
         return respond(
-            400, {"message": "The new report must include station, date, report and panel attributes"})
+            400,
+            {"message": "The new report must include station, date, report and panel attributes"},
+            cors_origin
+        )
 
     date = datetime.strptime(body["date"], "%Y/%m/%d,%H:%M:%S").isoformat()
     station = body["station"].lower()
@@ -102,4 +120,4 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
         "battery": body["battery"],
         "panel": body["panel"]
     }
-    return respond(201, res_body)
+    return respond(201, res_body, cors_origin)
