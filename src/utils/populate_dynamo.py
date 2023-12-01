@@ -296,7 +296,7 @@ def main() -> None:
 
     all_commands = add_commands + remove_commands
     if args.command not in all_commands:
-        raise ValueError("Invalid command. Please choose between ")
+        raise ValueError(f"Invalid command. Please choose between {all_commands}")
 
     endpoint_url: Optional[str] = args.endpoint_url
     reports_table, last_reports_table = get_tables(endpoint_url)

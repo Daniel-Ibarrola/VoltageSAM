@@ -63,7 +63,7 @@ class TestApiGateway:
 
     @pytest.fixture(autouse=True)
     def set_up_api_test(self, api_host):
-        self.station = "tonalapa"
+        self.station = "Tonalapa"
         self.client = APIClient(api_host)
         self.client.get_auth_token()
 
@@ -129,8 +129,8 @@ class TestAddNewReport(TestApiGateway):
         yield
 
         date = datetime(2023, 2, 22, 16, 20, 0).isoformat()
-        reports_t.delete_item(Key={"station": "caracol", "date": date})
-        last_reports_t.delete_item(Key={"station": "caracol"})
+        reports_t.delete_item(Key={"station": "Caracol", "date": date})
+        last_reports_t.delete_item(Key={"station": "Caracol"})
 
     @pytest.mark.usefixtures("clean_up_db")
     def test_add_new_report_happy_path(self) -> None:
@@ -140,7 +140,10 @@ class TestAddNewReport(TestApiGateway):
         res = self.client.new_station_report("Caracol", date_str, 20.0, 15.5)
         assert res.status_code == 201
         assert res.json() == {
-            "station": "caracol", "date": date.isoformat(), "battery": 20.0, "panel": 15.5
+            "station": "Caracol",
+            "date": date.isoformat(),
+            "battery": 20.0,
+            "panel": 15.5
         }
 
     @pytest.fixture
@@ -150,9 +153,9 @@ class TestAddNewReport(TestApiGateway):
 
         date1 = datetime(2023, 2, 22, 16, 20, 0)
         date2 = datetime(2023, 3, 22, 16, 20, 0)
-        reports_t.delete_item(Key={"station": "caracol", "date": date1.isoformat()})
-        reports_t.delete_item(Key={"station": "caracol", "date": date2.isoformat()})
-        last_reports_t.delete_item(Key={"station": "caracol"})
+        reports_t.delete_item(Key={"station": "Caracol", "date": date1.isoformat()})
+        reports_t.delete_item(Key={"station": "Caracol", "date": date2.isoformat()})
+        last_reports_t.delete_item(Key={"station": "Caracol"})
 
     def test_last_reports_are_updated(self, clear_reports):
         date1 = datetime(2023, 2, 22, 16, 20, 0)
@@ -168,7 +171,7 @@ class TestAddNewReport(TestApiGateway):
         assert res.status_code == 201
 
         _, last_reports_t = clear_reports
-        ddb_res = last_reports_t.query(KeyConditionExpression=Key("station").eq(station.lower()))
+        ddb_res = last_reports_t.query(KeyConditionExpression=Key("station").eq(station))
         items = ddb_res["Items"]
         assert len(items) == 1
 
@@ -202,16 +205,16 @@ class TestGetStationLastReports(TestApiGateway):
         reports = response.json()["reports"]
         assert len(reports) == 2
 
-        tonalapa_rep = [rep for rep in reports if rep["station"] == "tonalapa"][0]
-        piedra_rep = [rep for rep in reports if rep["station"] == "piedra grande"][0]
+        tonalapa_rep = [rep for rep in reports if rep["station"] == "Tonalapa"][0]
+        piedra_rep = [rep for rep in reports if rep["station"] == "Piedra Grande"][0]
         assert tonalapa_rep == {
-            "station": "tonalapa",
+            "station": "Tonalapa",
             "date": "2023-02-23T16:20:00",
             "battery": 55.0,
             "panel": 60.0
         }
         assert piedra_rep == {
-            "station": "piedra grande",
+            "station": "Piedra Grande",
             "date": "2023-02-22T16:20:00",
             "battery": 34.0,
             "panel": 40.0

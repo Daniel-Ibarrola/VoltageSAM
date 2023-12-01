@@ -79,7 +79,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
 
     print(f"Requested last report for station {station}")
 
-    ddb_res = table.query(KeyConditionExpression=Key("station").eq(station.lower()))
+    ddb_res = table.query(KeyConditionExpression=Key("station").eq(station))
     reports = ddb_res["Items"]
     if not reports:
         print(f"Did not find last report for station {station}")

@@ -39,8 +39,8 @@ class TestListReports:
 
         assert lambda_output["statusCode"] == 200
         assert data["reports"] == [
-            {"station": "tonalapa", "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
-            {"station": "piedra grande", "date": "2023-02-22T16:20:00", "battery": 34.0, "panel": 40.0},
+            {"station": "Tonalapa", "date": "2023-02-23T16:20:00", "battery": 55.0, "panel": 60.0},
+            {"station": "Piedra Grande", "date": "2023-02-22T16:20:00", "battery": 34.0, "panel": 40.0},
         ]
 
     @pytest.fixture

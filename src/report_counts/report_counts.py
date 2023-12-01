@@ -79,7 +79,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
 
     print(f"Requested report counts for station {station}")
     ddb_response = table.query(
-        KeyConditionExpression=Key("station").eq(station.lower()),
+        KeyConditionExpression=Key("station").eq(station),
         ScanIndexForward=False
     )
     reports = ddb_response["Items"]
