@@ -86,23 +86,23 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
 
     if not start_date and not next_key:
         ddb_res = table.query(
-            KeyConditionExpression=Key("station").eq(station.lower()),
+            KeyConditionExpression=Key("station").eq(station),
             ScanIndexForward=False
         )
     elif start_date and not next_key:
         ddb_res = table.query(
-            KeyConditionExpression=Key("station").eq(station.lower()) & Key("date").gte(start_date),
+            KeyConditionExpression=Key("station").eq(station) & Key("date").gte(start_date),
             ScanIndexForward=False
         )
     elif not start_date and not next_key:
         ddb_res = table.query(
-            KeyConditionExpression=Key("station").eq(station.lower()),
+            KeyConditionExpression=Key("station").eq(station),
             ScanIndexForward=False,
             ExclusiveStartKey=next_key
         )
     else:
         ddb_res = table.query(
-            KeyConditionExpression=Key("station").eq(station.lower()) & Key("date").gte(start_date),
+            KeyConditionExpression=Key("station").eq(station) & Key("date").gte(start_date),
             ScanIndexForward=False,
             ExclusiveStartKey=next_key
         )

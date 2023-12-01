@@ -31,13 +31,13 @@ class TestAddNewReport:
     @staticmethod
     def check_report(table, station: str, date: str) -> None:
         res = table.query(
-            KeyConditionExpression=Key("station").eq(station.lower()) & Key("date").eq(date)
+            KeyConditionExpression=Key("station").eq(station) & Key("date").eq(date)
         )
         assert len(res["Items"]) == 1
 
         report = res["Items"][0]
-        assert report["station"] == "caracol"
-        assert report["date"] == date
+        assert report["station"] == "Caracol", f"Incorrect station {report['station']}"
+        assert report["date"] == date, f"Incorrect date {report['date']}"
 
     @pytest.mark.usefixtures("mock_dynamo_db")
     def test_add_new_report_happy_path(self):
@@ -47,13 +47,18 @@ class TestAddNewReport:
         date_iso = date.isoformat()
 
         handler = self.get_handler()
-        event = generate_event(body={"station": station, "date": date_str, "battery": 20.0, "panel": 15.5})
+        event = generate_event(body={
+            "station": station,
+            "date": date_str,
+            "battery": 20.0,
+            "panel": 15.5
+        })
         context = get_context()
         lambda_output = handler(event, context)
         data = json.loads(lambda_output["body"])
 
         assert lambda_output["statusCode"] == 201
-        assert data == {"station": "caracol", "date": date_iso, "battery": 20.0, "panel": 15.5}
+        assert data == {"station": "Caracol", "date": date_iso, "battery": 20.0, "panel": 15.5}
 
         # Check that last reports abd reports table were updated
         mock_dynamo = boto3.resource("dynamodb")
@@ -86,16 +91,19 @@ class TestAddNewReport:
         reports_tb = ddb_resource.Table(REPORTS_TABLE_NAME)
         last_reports_tb = ddb_resource.Table(LAST_REPORTS_TABLE_NAME)
 
-        ddb_res = reports_tb.query(KeyConditionExpression=Key("station").eq(station.lower()))
+        ddb_res = reports_tb.query(KeyConditionExpression=Key("station").eq(station))
         assert len(ddb_res["Items"]) == 2
 
-        ddb_res = last_reports_tb.query(KeyConditionExpression=Key("station").eq(station.lower()))
+        ddb_res = last_reports_tb.query(KeyConditionExpression=Key("station").eq(station))
         items = ddb_res["Items"]
         assert len(items) == 1
         report = items[0]
 
         assert report == {
-            "station": station.lower(), "date": date2.isoformat(), "battery": 50.0, "panel": 30.0
+            "station": station,
+            "date": date2.isoformat(),
+            "battery": 50.0,
+            "panel": 30.0
         }
 
     @pytest.mark.usefixtures("mock_dynamo_db")

@@ -88,7 +88,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
         )
 
     date = datetime.strptime(body["date"], "%Y/%m/%d,%H:%M:%S").isoformat()
-    station = body["station"].lower()
+    station = body["station"]
     battery = Decimal(body["battery"])
     panel = Decimal(body["panel"])
 
