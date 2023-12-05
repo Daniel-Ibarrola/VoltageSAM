@@ -9,7 +9,7 @@ from tests.unit.table import REPORTS_TABLE_NAME, LAST_REPORTS_TABLE_NAME
 
 @pytest.fixture
 def station_fixture() -> str:
-    return "Tonalapa"
+    return "Pto Bálsamo"
 
 
 @pytest.fixture

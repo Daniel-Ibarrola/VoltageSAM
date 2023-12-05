@@ -63,7 +63,7 @@ class TestApiGateway:
 
     @pytest.fixture(autouse=True)
     def set_up_api_test(self, api_host):
-        self.station = "Tonalapa"
+        self.station = "Pto Bálsamo"
         self.client = APIClient(api_host)
         self.client.get_auth_token()
 
@@ -123,24 +123,26 @@ class TestGetStationReports(TestApiGateway):
 
 class TestAddNewReport(TestApiGateway):
 
+    new_station = "Mazatán SV"
+
     @pytest.fixture
     def clean_up_db(self, dynamo_db_tables):
         reports_t, last_reports_t = dynamo_db_tables
         yield
 
         date = datetime(2023, 2, 22, 16, 20, 0).isoformat()
-        reports_t.delete_item(Key={"station": "Caracol", "date": date})
-        last_reports_t.delete_item(Key={"station": "Caracol"})
+        reports_t.delete_item(Key={"station": self.new_station, "date": date})
+        last_reports_t.delete_item(Key={"station": self.new_station})
 
     @pytest.mark.usefixtures("clean_up_db")
     def test_add_new_report_happy_path(self) -> None:
         """ Add a new report. """
         date = datetime(2023, 2, 22, 16, 20, 0)
         date_str = date.strftime("%Y/%m/%d,%H:%M:%S")
-        res = self.client.new_station_report("Caracol", date_str, 20.0, 15.5)
+        res = self.client.new_station_report(self.new_station, date_str, 20.0, 15.5)
         assert res.status_code == 201
         assert res.json() == {
-            "station": "Caracol",
+            "station": self.new_station,
             "date": date.isoformat(),
             "battery": 20.0,
             "panel": 15.5
@@ -153,9 +155,9 @@ class TestAddNewReport(TestApiGateway):
 
         date1 = datetime(2023, 2, 22, 16, 20, 0)
         date2 = datetime(2023, 3, 22, 16, 20, 0)
-        reports_t.delete_item(Key={"station": "Caracol", "date": date1.isoformat()})
-        reports_t.delete_item(Key={"station": "Caracol", "date": date2.isoformat()})
-        last_reports_t.delete_item(Key={"station": "Caracol"})
+        reports_t.delete_item(Key={"station": self.new_station, "date": date1.isoformat()})
+        reports_t.delete_item(Key={"station": self.new_station, "date": date2.isoformat()})
+        last_reports_t.delete_item(Key={"station": self.new_station})
 
     def test_last_reports_are_updated(self, clear_reports):
         date1 = datetime(2023, 2, 22, 16, 20, 0)
@@ -163,15 +165,14 @@ class TestAddNewReport(TestApiGateway):
         date1_str = date1.strftime("%Y/%m/%d,%H:%M:%S")
         date2_str = date2.strftime("%Y/%m/%d,%H:%M:%S")
 
-        station = "Caracol"
-        res = self.client.new_station_report(station, date1_str, 20.0, 15.5)
+        res = self.client.new_station_report(self.new_station, date1_str, 20.0, 15.5)
         assert res.status_code == 201
 
-        res = self.client.new_station_report(station, date2_str, 40.0, 50)
+        res = self.client.new_station_report(self.new_station, date2_str, 40.0, 50)
         assert res.status_code == 201
 
         _, last_reports_t = clear_reports
-        ddb_res = last_reports_t.query(KeyConditionExpression=Key("station").eq(station))
+        ddb_res = last_reports_t.query(KeyConditionExpression=Key("station").eq(self.new_station))
         items = ddb_res["Items"]
         assert len(items) == 1
 
@@ -205,15 +206,15 @@ class TestGetStationLastReports(TestApiGateway):
         reports = response.json()["reports"]
         assert len(reports) == 2
 
-        tonalapa_rep = [rep for rep in reports if rep["station"] == "Tonalapa"][0]
-        piedra_rep = [rep for rep in reports if rep["station"] == "Piedra Grande"][0]
-        assert tonalapa_rep == {
-            "station": "Tonalapa",
+        report1 = [rep for rep in reports if rep["station"] == self.station][0]
+        report2 = [rep for rep in reports if rep["station"] == "Piedra Grande"][0]
+        assert report1 == {
+            "station": self.station,
             "date": "2023-02-23T16:20:00",
             "battery": 55.0,
             "panel": 60.0
         }
-        assert piedra_rep == {
+        assert report2 == {
             "station": "Piedra Grande",
             "date": "2023-02-22T16:20:00",
             "battery": 34.0,
