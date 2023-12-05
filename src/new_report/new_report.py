@@ -32,12 +32,12 @@ def get_cors_origin(lambda_fn_name: str) -> str:
     if "prod" in lambda_fn_name:
         return "https://api.voltage.cires-ac.mx"
     else:
-        return "http://localhost:5173"
+        return "*"
 
 
 def respond(
         status_code: int, body: list | dict | str,
-        cors_origin: str = "http://localhost:5173"
+        cors_origin: str = "*"
 ) -> dict:
     """ A response in the format that API Gateway expects.
     """
