@@ -1,5 +1,6 @@
 import os
 import json
+from urllib.parse import unquote
 
 from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
@@ -71,6 +72,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext):
     station = ""
     if path_params is not None:
         station: str = path_params.get("station", "")
+        station = unquote(station)
 
     if not path_params or not station:
         print("Failed to get station path parameter")

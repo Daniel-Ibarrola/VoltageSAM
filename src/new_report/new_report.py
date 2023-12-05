@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 import os
 import json
+from urllib.parse import unquote
 
 from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
@@ -89,6 +90,7 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict:
 
     date = datetime.strptime(body["date"], "%Y/%m/%d,%H:%M:%S").isoformat()
     station = body["station"]
+    station = unquote(station)
     battery = Decimal(body["battery"])
     panel = Decimal(body["panel"])
 
